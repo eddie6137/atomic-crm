@@ -305,6 +305,8 @@ const eosCallbacks: ResourceCallbacks[] = [
   "eos_projects",
   "eos_commitments",
   "eos_issues",
+  "eos_deliverables",
+  "eos_rocks",
 ].map((resource) => ({
   resource,
   beforeSave: async (data: any) => eosBeforeSave(data),

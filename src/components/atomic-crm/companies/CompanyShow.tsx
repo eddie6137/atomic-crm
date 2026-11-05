@@ -1,3 +1,4 @@
+import { CompanyEosTab } from "../eos/CompanyEosTab";
 import { ReferenceManyField } from "@/components/admin/reference-many-field";
 import { SortButton } from "@/components/admin/sort-button";
 import { buttonVariants } from "@/components/ui/button";
@@ -125,7 +126,7 @@ const CompanyShowContent = () => {
               </h5>
             </div>
             <Tabs defaultValue={currentTab} onValueChange={handleTabChange}>
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="activity">
                   {translate("crm.common.activity")}
                 </TabsTrigger>
@@ -143,6 +144,7 @@ const CompanyShowContent = () => {
                     })}
                   </TabsTrigger>
                 ) : null}
+                <TabsTrigger value="eos">EOS</TabsTrigger>
               </TabsList>
               <TabsContent value="activity" className="pt-2">
                 <ActivityLog companyId={record.id} context="company" />
@@ -184,6 +186,9 @@ const CompanyShowContent = () => {
                     <DealsIterator />
                   </ReferenceManyField>
                 ) : null}
+              </TabsContent>
+              <TabsContent value="eos">
+                <CompanyEosTab companyId={record.id} />
               </TabsContent>
             </Tabs>
           </CardContent>

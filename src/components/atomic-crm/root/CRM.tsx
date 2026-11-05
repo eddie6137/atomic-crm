@@ -34,6 +34,12 @@ import sales from "../sales";
 import {
   EosHome,
   EosImportPage,
+  L10Page,
+  ProposalsPage,
+  ScorecardPage,
+  eosDeliverables,
+  eosMetrics,
+  eosRocks,
   eosCommitments,
   eosIssues,
   eosProjects,
@@ -270,12 +276,20 @@ const DesktopAdmin = (
         <Route path={ChangelogPage.path} element={<ChangelogPage />} />
         <Route path={EosHome.path} element={<EosHome />} />
         <Route path={EosImportPage.path} element={<EosImportPage />} />
+        <Route path={ScorecardPage.path} element={<ScorecardPage />} />
+        <Route path={L10Page.path} element={<L10Page />} />
+        <Route path={ProposalsPage.path} element={<ProposalsPage />} />
       </CustomRoutes>
       <Resource name="deals" {...deals} />
       <Resource name="eos_projects" {...eosProjects} />
       <Resource name="eos_commitments" {...eosCommitments} />
       <Resource name="eos_issues" {...eosIssues} />
       <Resource name="eos_account_summary" />
+      <Resource name="eos_deliverables" {...eosDeliverables} />
+      <Resource name="eos_rocks" {...eosRocks} />
+      <Resource name="eos_scorecard_metrics" {...eosMetrics} />
+      <Resource name="eos_scorecard_values" />
+      <Resource name="eos_proposals" />
       <Resource name="contacts" {...contacts} />
       <Resource name="companies" {...companies} />
       <Resource name="contact_notes" />
@@ -351,11 +365,19 @@ const MobileAdmin = (
           <Route path={ChangelogPage.path} element={<ChangelogPage />} />
           <Route path={EosHome.path} element={<EosHome />} />
           <Route path={EosImportPage.path} element={<EosImportPage />} />
+          <Route path={ScorecardPage.path} element={<ScorecardPage />} />
+          <Route path={L10Page.path} element={<L10Page />} />
+          <Route path={ProposalsPage.path} element={<ProposalsPage />} />
         </CustomRoutes>
         <Resource name="eos_projects" {...eosProjects} />
         <Resource name="eos_commitments" {...eosCommitments} />
         <Resource name="eos_issues" {...eosIssues} />
         <Resource name="eos_account_summary" />
+        <Resource name="eos_deliverables" {...eosDeliverables} />
+        <Resource name="eos_rocks" {...eosRocks} />
+        <Resource name="eos_scorecard_metrics" {...eosMetrics} />
+        <Resource name="eos_scorecard_values" />
+        <Resource name="eos_proposals" />
         <Resource name="sales" />
         <Resource
           name="contacts"

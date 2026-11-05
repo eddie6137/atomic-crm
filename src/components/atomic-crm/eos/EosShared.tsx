@@ -66,8 +66,10 @@ export const OwnerInput = ({
 
 export const ProjectInput = ({
   source = "project_id",
+  required,
 }: {
   source?: string;
+  required?: boolean;
 }) => {
   const companyId = useWatch({ name: "company_id" });
   return (
@@ -81,7 +83,13 @@ export const ProjectInput = ({
       }
       sort={{ field: "title", order: "ASC" }}
     >
-      <AutocompleteInput label="Project" optionText="title" />
+      <AutocompleteInput
+        label="Project"
+        optionText="title"
+        validate={
+          required ? (v: any) => (v ? undefined : "Required") : undefined
+        }
+      />
     </ReferenceInput>
   );
 };

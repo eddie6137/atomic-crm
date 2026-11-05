@@ -5,7 +5,12 @@ const tabs = [
   { to: "/eos_projects", label: "Projects" },
   { to: "/eos_commitments", label: "Commitments" },
   { to: "/eos_issues", label: "Issues" },
-  { to: "/eos/import", label: "Import & reconcile" },
+  { to: "/eos_deliverables", label: "Deliverables" },
+  { to: "/eos_rocks", label: "Rocks" },
+  { to: "/eos/scorecard", label: "Scorecard" },
+  { to: "/eos/l10", label: "L10" },
+  { to: "/eos/proposals", label: "Proposals" },
+  { to: "/eos/import", label: "Import" },
 ];
 
 export const EosNav = () => {

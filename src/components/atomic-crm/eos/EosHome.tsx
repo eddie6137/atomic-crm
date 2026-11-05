@@ -28,27 +28,7 @@ export const EosHome = () => {
               <CardTitle className="text-base">{a.name}</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-2 text-sm">
-              <Stat
-                to={`/eos_projects?filter=${enc({ company_id: a.id })}`}
-                label="Open projects"
-                n={a.open_projects}
-              />
-              <Stat
-                to={`/eos_commitments?filter=${enc({ company_id: a.id, "status@in": "(open,in_progress,blocked,ambiguous)" })}`}
-                label="Open commitments"
-                n={a.open_commitments}
-              />
-              <Stat
-                to={`/eos_commitments?filter=${enc({ company_id: a.id, "status@in": "(open,in_progress,blocked,ambiguous)", "due_date@lt": todayStr() })}`}
-                label="Overdue commitments"
-                n={a.overdue_commitments}
-                warn
-              />
-              <Stat
-                to={`/eos_issues?filter=${enc({ company_id: a.id, "status@in": "(open,ids)" })}`}
-                label="Open issues"
-                n={a.open_issues}
-              />
+              <AccountSignals a={a} />
             </CardContent>
           </Card>
         ))}
@@ -57,6 +37,66 @@ export const EosHome = () => {
   );
 };
 EosHome.path = "/eos";
+
+const OPEN_C = "(open,in_progress,blocked,ambiguous)";
+
+/** Per-account "nothing dropped" signals (spec §3 defaults). Every count drills into its list. */
+export const AccountSignals = ({ a }: { a: any }) => {
+  const today = todayStr();
+  const in7 = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Los_Angeles",
+  }).format(new Date(Date.now() + 7 * 864e5));
+  return (
+    <>
+      <Stat
+        to={`/eos_commitments?filter=${enc({ company_id: a.id, "status@in": OPEN_C, "due_date@lt": today })}`}
+        label="Overdue commitments"
+        n={a.overdue_commitments}
+        warn
+      />
+      <Stat
+        to={`/eos_issues?filter=${enc({ company_id: a.id, "status@in": "(open,ids)" })}`}
+        label="Open issues"
+        n={a.open_issues}
+        warn
+      />
+      <Stat
+        to={`/eos_deliverables?filter=${enc({ company_id: a.id, "status@in": "(planned,in_progress,ready)", "due_date@gte": today, "due_date@lte": in7 })}`}
+        label="Deliverables due 7d"
+        n={a.deliverables_due_7d}
+        warn
+      />
+      <Stat
+        to={`/eos_projects?filter=${enc({ company_id: a.id, status: "active", "last_activity_at@lt": new Date(Date.now() - 14 * 864e5).toISOString() })}`}
+        label="Stale projects (14d)"
+        n={a.stale_projects}
+        warn
+      />
+      <Stat
+        to={`/eos_rocks?filter=${enc({ company_id: a.id, status: "off_track" })}`}
+        label="Rocks off-track"
+        n={a.off_track_rocks}
+        warn
+      />
+      <Stat
+        to={`/eos_commitments?filter=${enc({ company_id: a.id, "status@in": OPEN_C })}`}
+        label="Open commitments"
+        n={a.open_commitments}
+      />
+      <Stat
+        to={`/eos_projects?filter=${enc({ company_id: a.id })}`}
+        label="Open projects"
+        n={a.open_projects}
+      />
+      <Stat
+        to={`/eos_commitments?filter=${enc({ company_id: a.id, "status@in": OPEN_C, "@or": { "owner_sales_id@is": null, "due_date@is": null } })}`}
+        label="Missing owner/date"
+        n={a.missing_owner_or_date}
+        warn
+      />
+    </>
+  );
+};
 
 const enc = (o: object) => encodeURIComponent(JSON.stringify(o));
 const todayStr = () =>

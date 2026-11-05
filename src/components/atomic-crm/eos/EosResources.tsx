@@ -37,11 +37,13 @@ import {
   SavedViews,
 } from "./EosShared";
 import { EosNav } from "./EosNav";
+import { EosListBody } from "./EosListBody";
 
 const saleName = (r: any) => `${r.first_name} ${r.last_name}`;
-const required = (v: any) => (v == null || v === "" ? "Required" : undefined);
+export const required = (v: any) =>
+  v == null || v === "" ? "Required" : undefined;
 
-const ListActions = ({ label }: { label: string }) => (
+export const ListActions = ({ label }: { label: string }) => (
   <TopToolbar>
     <ExportButton />
     <CreateButton label={label} />
@@ -49,7 +51,7 @@ const ListActions = ({ label }: { label: string }) => (
 );
 
 /** Soft-delete only (§4.2/§7): archive sets archived_at; no delete button anywhere in EOS. */
-const ArchiveButton = ({ resource }: { resource: string }) => {
+export const ArchiveButton = ({ resource }: { resource: string }) => {
   const record = useRecordContext();
   const [update, { isPending }] = useUpdate();
   const notify = useNotify();
@@ -82,7 +84,7 @@ const ArchiveButton = ({ resource }: { resource: string }) => {
   );
 };
 
-const CommonCols = () => [
+export const CommonCols = () => [
   <DataTable.Col source="company_id" label="Account" key="c">
     <ReferenceField source="company_id" reference="companies" link={false} />
   </DataTable.Col>,
@@ -131,15 +133,17 @@ export const ProjectList = () => (
       actions={<ListActions label="New project" />}
     >
       <SavedViews openStatuses={["planned", "active", "on_hold"]} />
-      <DataTable rowClick="edit" bulkActionButtons={false}>
-        <DataTable.Col source="title" />
-        {CommonCols()}
-        <DataTable.Col source="status" />
-        <DataTable.Col source="target_date" label="Target" />
-        <DataTable.Col label="Links / files">
-          <LinksField />
-        </DataTable.Col>
-      </DataTable>
+      <EosListBody>
+        <DataTable rowClick="edit" bulkActionButtons={false}>
+          <DataTable.Col source="title" />
+          {CommonCols()}
+          <DataTable.Col source="status" />
+          <DataTable.Col source="target_date" label="Target" />
+          <DataTable.Col label="Links / files">
+            <LinksField />
+          </DataTable.Col>
+        </DataTable>
+      </EosListBody>
     </List>
   </div>
 );
@@ -208,19 +212,21 @@ export const CommitmentList = () => (
       actions={<ListActions label="New commitment" />}
     >
       <SavedViews openStatuses={COMMITMENT_OPEN} hasDue />
-      <DataTable rowClick="edit" bulkActionButtons={false}>
-        <DataTable.Col source="title" />
-        {CommonCols()}
-        <DataTable.Col source="status" />
-        <DataTable.Col source="due_date" label="Due">
-          <DueField />
-        </DataTable.Col>
-        <DataTable.Col source="priority" />
-        <DataTable.Col source="type" />
-        <DataTable.Col label="Links / files">
-          <LinksField />
-        </DataTable.Col>
-      </DataTable>
+      <EosListBody>
+        <DataTable rowClick="edit" bulkActionButtons={false}>
+          <DataTable.Col source="title" />
+          {CommonCols()}
+          <DataTable.Col source="status" />
+          <DataTable.Col source="due_date" label="Due">
+            <DueField />
+          </DataTable.Col>
+          <DataTable.Col source="priority" />
+          <DataTable.Col source="type" />
+          <DataTable.Col label="Links / files">
+            <LinksField />
+          </DataTable.Col>
+        </DataTable>
+      </EosListBody>
     </List>
   </div>
 );
@@ -287,19 +293,21 @@ export const IssueList = () => (
       actions={<ListActions label="New issue" />}
     >
       <SavedViews openStatuses={ISSUE_OPEN} hasDue />
-      <DataTable rowClick="edit" bulkActionButtons={false}>
-        <DataTable.Col source="title" />
-        {CommonCols()}
-        <DataTable.Col source="status" />
-        <DataTable.Col source="priority" />
-        <DataTable.Col source="type" />
-        <DataTable.Col source="due_date" label="Due">
-          <DueField />
-        </DataTable.Col>
-        <DataTable.Col label="Links / files">
-          <LinksField />
-        </DataTable.Col>
-      </DataTable>
+      <EosListBody>
+        <DataTable rowClick="edit" bulkActionButtons={false}>
+          <DataTable.Col source="title" />
+          {CommonCols()}
+          <DataTable.Col source="status" />
+          <DataTable.Col source="priority" />
+          <DataTable.Col source="type" />
+          <DataTable.Col source="due_date" label="Due">
+            <DueField />
+          </DataTable.Col>
+          <DataTable.Col label="Links / files">
+            <LinksField />
+          </DataTable.Col>
+        </DataTable>
+      </EosListBody>
     </List>
   </div>
 );

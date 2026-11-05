@@ -137,7 +137,7 @@ log("by account", await count());
 await page.goto(
   URL +
     "#/eos_commitments?filter=" +
-    encodeURIComponent(JSON.stringify({ owner_sales_id: 2 })),
+    encodeURIComponent(JSON.stringify({ owner_sales_id: 4 })),
 );
 log("owner=Pat", await count());
 await shot("07-commitments-owner-filter");

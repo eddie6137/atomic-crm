@@ -38,3 +38,43 @@ export const todayPT = (now: Date = new Date()) =>
   }).format(now);
 
 export const inFilter = (values: string[]) => `(${values.join(",")})`;
+
+export const DELIVERABLE_STATUSES = [
+  "planned",
+  "in_progress",
+  "ready",
+  "delivered",
+  "accepted",
+  "cancelled",
+];
+export const DELIVERABLE_OPEN = ["planned", "in_progress", "ready"];
+export const ROCK_STATUSES = ["on_track", "off_track", "done", "cancelled"];
+
+/** Monday (ISO week start) of the PT calendar week containing `d` (YYYY-MM-DD). */
+export const weekStart = (isoDate: string) => {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  const dow = (dt.getUTCDay() + 6) % 7; // Mon=0
+  dt.setUTCDate(dt.getUTCDate() - dow);
+  return dt.toISOString().slice(0, 10);
+};
+export const addDays = (isoDate: string, n: number) => {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + n));
+  return dt.toISOString().slice(0, 10);
+};
+export const currentQuarter = (isoDate: string) => {
+  const [y, m] = isoDate.split("-").map(Number);
+  return `${y}-Q${Math.floor((m - 1) / 3) + 1}`;
+};
+/** Scorecard hit/miss; null actual = missing (never treated as zero). */
+export const metricHit = (
+  actual: number | null | undefined,
+  comparator: string,
+  target: number | null | undefined,
+) => {
+  if (actual == null || target == null) return null;
+  if (comparator === ">=") return actual >= target;
+  if (comparator === "<=") return actual <= target;
+  return actual === target;
+};
