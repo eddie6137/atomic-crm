@@ -42,6 +42,9 @@ import {
   ScorecardPage,
   eosDeliverables,
   eosMilestones,
+  eosContracts,
+  eosContractObligations,
+  ContractSignalsPage,
   eosMetrics,
   eosRocks,
   eosCommitments,
@@ -288,6 +291,10 @@ const DesktopAdmin = (
         <Route path={L10Page.path} element={<L10Page />} />
         <Route path={HotTopicsPage.path} element={<HotTopicsPage />} />
         <Route path={TeamPage.path} element={<TeamPage />} />
+        <Route
+          path={ContractSignalsPage.path}
+          element={<ContractSignalsPage />}
+        />
         <Route path={ProposalsPage.path} element={<ProposalsPage />} />
       </CustomRoutes>
       <Resource name="deals" {...deals} />
@@ -298,6 +305,9 @@ const DesktopAdmin = (
       <Resource name="eos_deliverables" {...eosDeliverables} />
       <Resource name="eos_rocks" {...eosRocks} />
       <Resource name="eos_milestones" {...eosMilestones} />
+      <Resource name="eos_contracts" {...eosContracts} />
+      <Resource name="eos_contract_obligations" {...eosContractObligations} />
+      <Resource name="eos_contract_signals" />
       <Resource name="eos_scorecard_metrics" {...eosMetrics} />
       <Resource name="eos_scorecard_values" />
       <Resource name="eos_proposals" />
@@ -381,6 +391,10 @@ const MobileAdmin = (
           <Route path={L10Page.path} element={<L10Page />} />
           <Route path={HotTopicsPage.path} element={<HotTopicsPage />} />
           <Route path={TeamPage.path} element={<TeamPage />} />
+          <Route
+            path={ContractSignalsPage.path}
+            element={<ContractSignalsPage />}
+          />
           <Route path={ProposalsPage.path} element={<ProposalsPage />} />
         </CustomRoutes>
         <Resource name="eos_projects" {...eosProjects} />
@@ -390,6 +404,9 @@ const MobileAdmin = (
         <Resource name="eos_deliverables" {...eosDeliverables} />
         <Resource name="eos_rocks" {...eosRocks} />
         <Resource name="eos_milestones" {...eosMilestones} />
+        <Resource name="eos_contracts" {...eosContracts} />
+        <Resource name="eos_contract_obligations" {...eosContractObligations} />
+        <Resource name="eos_contract_signals" />
         <Resource name="eos_scorecard_metrics" {...eosMetrics} />
         <Resource name="eos_scorecard_values" />
         <Resource name="eos_proposals" />

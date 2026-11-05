@@ -12,6 +12,7 @@ const tabs = [
   { to: "/eos_deliverables", label: "Deliverables" },
   { to: "/eos_rocks", label: "Rocks" },
   { to: "/eos/scorecard", label: "Scorecard" },
+  { to: "/eos_contracts", label: "Contracts" },
   { to: "/eos/proposals", label: "Proposals" },
   { to: "/eos/import", label: "Import" },
 ];

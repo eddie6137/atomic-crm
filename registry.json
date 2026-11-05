@@ -668,6 +668,10 @@
           "type": "registry:component"
         },
         {
+          "path": "src/components/atomic-crm/eos/EosContracts.tsx",
+          "type": "registry:component"
+        },
+        {
           "path": "src/components/atomic-crm/eos/EosBulkActions.tsx",
           "type": "registry:component"
         },

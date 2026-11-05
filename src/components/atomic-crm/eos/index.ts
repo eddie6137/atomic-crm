@@ -9,3 +9,8 @@ export { ProposalsPage } from "./proposals/ProposalsPage";
 export { HotTopicsPage } from "./HotTopicsPage";
 export { TeamPage } from "./TeamPage";
 export { eosMilestones } from "./EosMilestones";
+export {
+  eosContracts,
+  eosContractObligations,
+  ContractSignalsPage,
+} from "./EosContracts";
