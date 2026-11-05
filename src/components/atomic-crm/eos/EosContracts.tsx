@@ -299,6 +299,16 @@ const ObligationForm = () => (
       <SelectInput source="offset_unit" choices={choices(OFFSET_UNITS)} />
       <TextInput source="business_calendar" label="Business calendar (OPEN)" />
       <TextInput source="due_rule" label="Rule as written" />
+      <NumberInput
+        source="recurrence_interval_months"
+        label="Repeats every N months (blank = once)"
+      />
+      <NumberInput source="recurrence_count" label="Occurrences" />
+      <TextInput
+        source="jurisdiction"
+        label="Jurisdiction"
+        defaultValue="US-federal"
+      />
       <BooleanInput source="due_confirmed" label="Human-confirmed date" />
       <DateInput source="due_date" label="Confirmed due date" />
       <Computed />
@@ -366,6 +376,46 @@ const SIGNAL_SECTIONS: [string, string][] = [
   ["needs_review", "Needs review (no confirmed date)"],
 ];
 
+/** One signal row: date, confirmed vs computed, lead bucket, and the review reason even when a date exists. */
+const SignalRow = ({ r }: { r: any }) => (
+  <Link
+    to={`/eos_contract_obligations/${r.obligation_id}`}
+    className="rounded border p-2 text-sm flex flex-col gap-1 min-w-0"
+    data-testid="eos-signal-row"
+  >
+    <span className="flex flex-wrap justify-between gap-2 min-w-0">
+      <span className="break-words min-w-0">
+        {r.title}
+        {r.occurrence_key && r.occurrence_key !== "n:0"
+          ? ` · ${r.occurrence_key}`
+          : ""}
+      </span>
+      <span className="flex flex-wrap gap-1 items-center">
+        {r.unconfirmed ? <Badge variant="secondary">unconfirmed</Badge> : null}
+        {r.needs_review ? (
+          <Badge variant="secondary">needs review</Badge>
+        ) : null}
+        {r.lead_bucket ? (
+          <Badge variant="outline">≤{r.lead_bucket}d</Badge>
+        ) : null}
+        <span className="text-muted-foreground">
+          {r.due_date ?? "no date"}
+          {r.days_until != null ? ` (${r.days_until}d)` : ""}
+          {r.due_date ? (r.due_confirmed ? " · confirmed" : " · computed") : ""}
+        </span>
+      </span>
+    </span>
+    {r.review_reason ? (
+      <span
+        className="text-xs text-amber-700 break-words"
+        data-testid="eos-signal-reason"
+      >
+        {r.review_reason}
+      </span>
+    ) : null}
+  </Link>
+);
+
 export const ContractSignalsPage = () => {
   const { data, isPending } = useGetList("eos_contract_signals", {
     pagination: { page: 1, perPage: 500 },
@@ -382,12 +432,13 @@ export const ContractSignalsPage = () => {
           EOS · Contract clauses: overdue / missed / upcoming
         </h2>
         <p className="text-xs text-muted-foreground">
-          Computed on load (last evaluated{" "}
-          {new Date().toLocaleString("en-US", {
-            timeZone: "America/Los_Angeles",
-          })}{" "}
-          PT). No outbound alerts. Flags only; Joe + Eddie decide
-          interpretation.
+          Live view, evaluated by the server at{" "}
+          {data?.[0]?.evaluated_at
+            ? new Date(data[0].evaluated_at).toLocaleString("en-US", {
+                timeZone: "America/Los_Angeles",
+              })
+            : "—"}{" "}
+          PT. No outbound alerts. Flags only; Joe + Eddie decide interpretation.
         </p>
         <LastRun />
         {isPending
@@ -400,17 +451,7 @@ export const ContractSignalsPage = () => {
                     {label} ({rows.length})
                   </h3>
                   {rows.map((r: any) => (
-                    <Link
-                      key={r.id}
-                      to={`/eos_contract_obligations/${r.id}`}
-                      className="rounded border p-2 text-sm flex flex-wrap justify-between gap-2 min-w-0"
-                    >
-                      <span className="break-words min-w-0">{r.title}</span>
-                      <span className="text-muted-foreground break-words min-w-0">
-                        {r.due_date ?? r.review_reason ?? "—"}
-                        {r.days_until != null ? ` (${r.days_until}d)` : ""}
-                      </span>
-                    </Link>
+                    <SignalRow key={r.id} r={r} />
                   ))}
                 </section>
               );
@@ -516,23 +557,7 @@ const ContractsDueInner = () => {
           Nothing missed or inside the lead window.
         </p>
       ) : (
-        rows.map((r: any) => (
-          <Link
-            key={r.obligation_id}
-            to={`/eos_contract_obligations/${r.obligation_id}`}
-            className="text-sm flex flex-wrap justify-between gap-2 min-w-0"
-          >
-            <span className="break-words min-w-0">{r.title}</span>
-            <span className="flex gap-1 items-center">
-              <Badge
-                variant={r.signal === "missed" ? "destructive" : "outline"}
-              >
-                {r.signal}
-              </Badge>
-              <span className="text-muted-foreground">{r.due_date}</span>
-            </span>
-          </Link>
-        ))
+        rows.map((r: any) => <SignalRow key={r.id} r={r} />)
       )}
     </section>
   );
