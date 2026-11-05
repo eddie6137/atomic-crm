@@ -6,6 +6,7 @@ const tabs = [
   { to: "/eos/l10", label: "L10" },
   { to: "/eos/team", label: "Team" },
   { to: "/eos_projects", label: "Projects" },
+  { to: "/eos_milestones", label: "Milestones" },
   { to: "/eos_commitments", label: "Commitments" },
   { to: "/eos_issues", label: "Issues" },
   { to: "/eos_deliverables", label: "Deliverables" },

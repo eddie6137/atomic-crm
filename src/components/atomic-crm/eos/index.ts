@@ -8,3 +8,4 @@ export { L10Page } from "./L10Page";
 export { ProposalsPage } from "./proposals/ProposalsPage";
 export { HotTopicsPage } from "./HotTopicsPage";
 export { TeamPage } from "./TeamPage";
+export { eosMilestones } from "./EosMilestones";

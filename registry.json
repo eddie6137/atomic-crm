@@ -656,6 +656,10 @@
           "type": "registry:component"
         },
         {
+          "path": "src/components/atomic-crm/eos/EosMilestones.tsx",
+          "type": "registry:component"
+        },
+        {
           "path": "src/components/atomic-crm/eos/EosListBody.tsx",
           "type": "registry:component"
         },

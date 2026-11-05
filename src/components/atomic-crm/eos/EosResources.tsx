@@ -38,6 +38,7 @@ import {
 } from "./EosShared";
 import { EosNav } from "./EosNav";
 import { EosListBody } from "./EosListBody";
+import { ParentProjectInput, ProjectChildren } from "./EosMilestones";
 import { EosBulkToolbar } from "./EosBulkActions";
 import { COMMITMENT_BULK, ISSUE_BULK, PROJECT_BULK } from "./bulkFields";
 
@@ -117,9 +118,11 @@ const ProjectForm = () => (
       <DateInput source="start_date" />
       <DateInput source="target_date" />
       <BooleanInput source="is_internal" label="Internal (Amplify) project" />
+      <ParentProjectInput />
     </div>
     <TextInput source="description" multiline className="w-full" />
     <LinksAndFilesInputs />
+    <ProjectChildren />
   </SimpleForm>
 );
 
@@ -142,6 +145,14 @@ export const ProjectList = () => (
         >
           <DataTable.Col source="title" />
           {CommonCols()}
+          <DataTable.Col source="parent_project_id" label="Parent">
+            <ReferenceField
+              source="parent_project_id"
+              reference="eos_projects"
+              link={false}
+              empty={<span className="text-muted-foreground">—</span>}
+            />
+          </DataTable.Col>
           <DataTable.Col source="status" />
           <DataTable.Col source="target_date" label="Target" />
           <DataTable.Col label="Links / files">

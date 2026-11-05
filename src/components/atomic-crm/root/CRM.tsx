@@ -41,6 +41,7 @@ import {
   ProposalsPage,
   ScorecardPage,
   eosDeliverables,
+  eosMilestones,
   eosMetrics,
   eosRocks,
   eosCommitments,
@@ -296,6 +297,7 @@ const DesktopAdmin = (
       <Resource name="eos_account_summary" />
       <Resource name="eos_deliverables" {...eosDeliverables} />
       <Resource name="eos_rocks" {...eosRocks} />
+      <Resource name="eos_milestones" {...eosMilestones} />
       <Resource name="eos_scorecard_metrics" {...eosMetrics} />
       <Resource name="eos_scorecard_values" />
       <Resource name="eos_proposals" />
@@ -386,6 +388,7 @@ const MobileAdmin = (
         <Resource name="eos_account_summary" />
         <Resource name="eos_deliverables" {...eosDeliverables} />
         <Resource name="eos_rocks" {...eosRocks} />
+        <Resource name="eos_milestones" {...eosMilestones} />
         <Resource name="eos_scorecard_metrics" {...eosMetrics} />
         <Resource name="eos_scorecard_values" />
         <Resource name="eos_proposals" />
