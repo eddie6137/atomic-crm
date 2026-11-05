@@ -9,7 +9,7 @@ import {
   useNotify,
   useTranslate,
 } from "ra-core";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useFormContext } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -194,8 +194,28 @@ const SettingsFormFields = () => {
     watch,
     setValue,
     reset,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors, submitCount },
   } = useFormContext();
+
+  useEffect(() => {
+    if (!submitCount) return;
+    const key = Object.keys(errors)[0];
+    if (!key) return;
+    const sectionId =
+      key === "dealStages" || key === "dealCategories" || key === "currency"
+        ? "deals"
+        : key === "taskTypes"
+          ? "tasks"
+          : key === "noteStatuses"
+            ? "notes"
+            : key === "companySectors"
+              ? "companies"
+              : "branding";
+    document.getElementById(sectionId)?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, [submitCount, errors]);
 
   const dealStages = watch("dealStages");
   const dealPipelineStatuses: string[] = watch("dealPipelineStatuses") ?? [];
