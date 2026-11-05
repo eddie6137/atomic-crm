@@ -57,20 +57,20 @@ export const DealsChart = memo(() => {
         won: dealsByMonth[month]
           .filter((deal: Deal) => deal.stage === "won")
           .reduce((acc: number, deal: Deal) => {
-            acc += deal.amount;
+            acc += deal.amount ?? 0;
             return acc;
           }, 0),
         pending: dealsByMonth[month]
           .filter((deal: Deal) => !["won", "lost"].includes(deal.stage))
           .reduce((acc: number, deal: Deal) => {
             // @ts-expect-error - multiplier type issue
-            acc += deal.amount * multiplier[deal.stage];
+            acc += (deal.amount ?? 0) * multiplier[deal.stage];
             return acc;
           }, 0),
         lost: dealsByMonth[month]
           .filter((deal: Deal) => deal.stage === "lost")
           .reduce((acc: number, deal: Deal) => {
-            acc -= deal.amount;
+            acc -= deal.amount ?? 0;
             return acc;
           }, 0),
       };

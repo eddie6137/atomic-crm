@@ -1,6 +1,13 @@
 import { commands } from "vitest/browser";
 
-import { formatISODateString } from "./dealUtils";
+import {
+  formatDealAmount,
+  formatDealClosingDateLabel,
+  formatISODateString,
+  isDealClosingDatePast,
+  isValidDealClosingDate,
+  sumDealAmounts,
+} from "./dealUtils";
 
 describe("formatISODateString", () => {
   let originalTimezone: string;
@@ -50,5 +57,38 @@ describe("formatISODateString", () => {
     expect(() => formatISODateString(invalidDate)).toThrow(
       "Invalid date format. Expected YYYY-MM-DD.",
     );
+  });
+});
+
+describe("formatDealAmount", () => {
+  it("formats finite amounts", () => {
+    expect(formatDealAmount(1500, "USD")).toContain("$");
+  });
+
+  it("treats null/undefined as zero", () => {
+    expect(formatDealAmount(null, "USD")).toBe(formatDealAmount(0, "USD"));
+    expect(formatDealAmount(undefined, "USD")).toBe(formatDealAmount(0, "USD"));
+  });
+});
+
+describe("closing date helpers", () => {
+  it("rejects null/empty closing dates", () => {
+    expect(isValidDealClosingDate(null)).toBe(false);
+    expect(isValidDealClosingDate(undefined)).toBe(false);
+    expect(isValidDealClosingDate("")).toBe(false);
+    expect(formatDealClosingDateLabel(null)).toBeNull();
+    expect(isDealClosingDatePast(null)).toBe(false);
+  });
+
+  it("formats valid ISO dates", () => {
+    expect(formatDealClosingDateLabel("2024-06-15")).toBe("Jun 15, 2024");
+  });
+});
+
+describe("sumDealAmounts", () => {
+  it("ignores null amounts", () => {
+    expect(
+      sumDealAmounts([{ amount: 10 }, { amount: null }, { amount: 5 }]),
+    ).toBe(15);
   });
 });

@@ -17,6 +17,41 @@ export const formatDealCategories = (
     )
     .join(", ");
 
+export function formatDealAmount(
+  amount: number | null | undefined,
+  currency: string,
+  locale = "en-US",
+): string {
+  const value =
+    typeof amount === "number" && Number.isFinite(amount) ? amount : 0;
+  return value.toLocaleString(locale, {
+    notation: "compact",
+    style: "currency",
+    currency,
+    currencyDisplay: "narrowSymbol",
+    minimumSignificantDigits: 3,
+  });
+}
+
+export function isValidDealClosingDate(
+  date: string | null | undefined,
+): date is string {
+  // new Date(null) is epoch and looks "valid"; only accept real strings.
+  if (typeof date !== "string" || date.length === 0) return false;
+  return !Number.isNaN(Date.parse(date));
+}
+
+export function sumDealAmounts(
+  deals: Array<{ amount?: number | null }>,
+): number {
+  return deals.reduce((sum, deal) => {
+    const amount = deal.amount;
+    return (
+      sum + (typeof amount === "number" && Number.isFinite(amount) ? amount : 0)
+    );
+  }, 0);
+}
+
 export function getRelativeTimeString(
   dateString: string,
   locale = "en",
@@ -59,4 +94,21 @@ export function formatISODateString(dateString: string) {
   const date = new Date(year, month - 1, day);
 
   return format(date, "PP");
+}
+
+/** Returns a display label for a deal closing date, or null when missing/invalid. */
+export function formatDealClosingDateLabel(
+  date: string | null | undefined,
+): string | null {
+  if (!isValidDealClosingDate(date)) return null;
+  const isoDay = date.slice(0, 10);
+  if (!isoDateStringRegex.test(isoDay)) return null;
+  return formatISODateString(isoDay);
+}
+
+export function isDealClosingDatePast(
+  date: string | null | undefined,
+): boolean {
+  if (!isValidDealClosingDate(date)) return false;
+  return new Date(date) < new Date();
 }

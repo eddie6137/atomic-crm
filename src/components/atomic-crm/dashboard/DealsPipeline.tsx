@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 
 import { SimpleList } from "../simple-list/SimpleList";
 import { CompanyAvatar } from "../companies/CompanyAvatar";
-import { findDealLabel } from "../deals/dealUtils";
+import { formatDealAmount, findDealLabel } from "../deals/dealUtils";
 import { useConfigurationContext } from "../root/ConfigurationContext";
 import type { Deal } from "../types";
 
@@ -66,13 +66,7 @@ export const DealsPipeline = () => {
           isPending={isPending}
           primaryText={(deal) => deal.name}
           secondaryText={(deal) =>
-            `${deal.amount.toLocaleString("en-US", {
-              notation: "compact",
-              style: "currency",
-              currency,
-              currencyDisplay: "narrowSymbol",
-              minimumSignificantDigits: 3,
-            })} , ${findDealLabel(dealStages, deal.stage)}`
+            `${formatDealAmount(deal.amount, currency)} , ${findDealLabel(dealStages, deal.stage)}`
           }
           leftAvatar={(deal) => (
             <ReferenceField
