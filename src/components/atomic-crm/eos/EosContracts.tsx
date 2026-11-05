@@ -589,7 +589,15 @@ const ContractsDueInner = () => {
       data-testid="eos-contracts-due"
     >
       <div className="flex flex-wrap justify-between gap-2 items-baseline">
-        <h3 className="font-semibold">Contracts due (private)</h3>
+        <h3 className="font-semibold">
+          Contracts due (private){" "}
+          <span
+            className="text-xs font-normal text-muted-foreground"
+            data-testid="eos-contracts-due-asof"
+          >
+            as of last nightly run
+          </span>
+        </h3>
         <Link className="text-sm underline" to="/eos/contract-signals">
           All clause signals
         </Link>

@@ -65,6 +65,18 @@ begin
   select string_agg(occurrence_key || '=' || signal, ',' order by occurrence_key) into s from public.eos_contract_signals where obligation_id = ob2;
   if s = 'n:0=closed,n:1=upcoming,n:2=later' then passed := passed + 1; else f := f || ' FAIL N3 fulfil ' || coalesce(s,'null'); end if;
 
+  -- C1 (#19): recurring clause fulfilled on today-35; repeat n:1 (due ~today-10) came due AFTER the fulfilment
+  set local role authenticated;
+  insert into public.eos_contract_obligations(contract_id, type, title, anchor, anchor_date, offset_quantity, offset_unit,
+      status, recurrence_interval_months, recurrence_count, fulfilled_through)
+    values (cid, 'notice', 'T-c1', 'invoice_date', today - 40, 0, 'day', 'fulfilled', 1, 3, today - 35) returning id into ob;
+  select string_agg(occurrence_key || '=' || signal, ',' order by occurrence_key) into s from public.eos_contract_signals where obligation_id = ob;
+  reset role;
+  rid := public.eos_contract_nightly_run('test');
+  select status into st from public.eos_contract_occurrences where obligation_id = ob and occurrence_key = 'n:1';
+  if s like 'n:0=closed,n:1=missed,n:2=%' and s not like '%n:2=closed%' and st = 'missed'
+    then passed := passed + 1; else f := f || ' FAIL C1 view=' || coalesce(s,'null') || ' runner_n1=' || coalesce(st,'null'); end if;
+
   -- N6: runner does not touch contracts
   reset role;
   select md5(string_agg(c::text, '' order by c.id)) into h1 from public.eos_contracts c;
