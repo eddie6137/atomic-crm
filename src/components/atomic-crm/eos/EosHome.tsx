@@ -2,6 +2,7 @@ import { useGetList } from "ra-core";
 import { Link } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EosNav } from "./EosNav";
+import { ContractsDueBlock } from "./EosContracts";
 import {
   idsFilter,
   ScopeTabs,
@@ -29,6 +30,7 @@ export const EosHome = () => {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-xl font-semibold">EOS · Portfolio</h2>
         <ScopeTabs scope={scope} setScope={setScope} />
+        <ContractsDueBlock />
       </div>
       <p className="text-sm text-muted-foreground">
         Accounts sorted by risk. Every count links to its filtered list.

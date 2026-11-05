@@ -1,5 +1,7 @@
 // EOS Light v1a constants. Spec: status/specs/eos-light-web-2026-11-05.md §2.
 export const EOS_BUCKET = "eos-attachments";
+/** Private (Joe/Eddie-only) bucket for contract files. */
+export const EOS_CONTRACT_BUCKET = "eos-contract-files";
 export const EOS_MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MiB default (§6)
 
 export const choices = (ids: string[]) =>

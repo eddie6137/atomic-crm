@@ -21,6 +21,7 @@ import type {
 import type { ConfigurationContextValue } from "../../root/ConfigurationContext";
 import { ATTACHMENTS_BUCKET } from "../commons/attachments";
 import { eosBeforeSave } from "../../eos/attachments";
+import { EOS_CONTRACT_BUCKET } from "../../eos/constants";
 import { getIsInitialized } from "./authProvider";
 import { searchDealCategories } from "./searchDealCategories";
 import { getSupabaseClient } from "./supabase";
@@ -314,8 +315,18 @@ const eosCallbacks: ResourceCallbacks[] = [
     applyFullTextSearch(["title"])(params),
 }));
 
+const eosContractCallbacks: ResourceCallbacks[] = [
+  {
+    resource: "eos_contracts",
+    beforeSave: async (data: any) => eosBeforeSave(data, EOS_CONTRACT_BUCKET),
+    beforeGetList: async (params: GetListParams) =>
+      applyFullTextSearch(["title"])(params),
+  },
+];
+
 const lifeCycleCallbacks: ResourceCallbacks[] = [
   ...eosCallbacks,
+  ...eosContractCallbacks,
   {
     resource: "configuration",
     beforeUpdate: async (params) => {

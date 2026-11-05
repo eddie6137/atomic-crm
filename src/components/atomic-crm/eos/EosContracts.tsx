@@ -33,7 +33,14 @@ import {
   ListActions,
   required,
 } from "./EosResources";
-import { CompanyInput, OwnerInput, ProjectInput } from "./EosShared";
+import {
+  CompanyInput,
+  ExistingAttachments,
+  OwnerInput,
+  ProjectInput,
+} from "./EosShared";
+import { FileField } from "@/components/admin/file-field";
+import { FileInput } from "@/components/admin/file-input";
 import { EosListBody } from "./EosListBody";
 import { EosNav } from "./EosNav";
 import { validateHttpsUrl } from "./links";
@@ -99,15 +106,20 @@ const ContractForm = () => (
         label="End-date / renewal rule (as written)"
       />
     </div>
-    <ArrayInput
-      source="links"
-      label="Contract source links (private; uploads come later)"
-    >
+    <ArrayInput source="links" label="Contract source links (private)">
       <SimpleFormIterator inline>
         <TextInput source="url" label="URL" validate={validateHttpsUrl} />
         <TextInput source="label" label="Label" />
       </SimpleFormIterator>
     </ArrayInput>
+    <ExistingAttachments editable />
+    <FileInput
+      source="new_files"
+      label="Upload contract files (private: Joe + Eddie only, max 10 MiB each)"
+      multiple
+    >
+      <FileField source="src" title="title" />
+    </FileInput>
     <TextInput source="notes" multiline className="w-full" />
     <Section title="Pricing / partner terms (STUB, Joe + Eddie decide)">
       <TextInput
@@ -377,6 +389,7 @@ export const ContractSignalsPage = () => {
           PT). No outbound alerts. Flags only; Joe + Eddie decide
           interpretation.
         </p>
+        <LastRun />
         {isPending
           ? null
           : SIGNAL_SECTIONS.map(([key, label]) => {
@@ -456,3 +469,77 @@ export const ObligationCreate = () => (
   </PrivateGate>
 );
 export { ContractList, ObligationList };
+
+/** Last nightly runner execution (private rows; RLS returns nothing to others). */
+export const LastRun = () => {
+  const { data } = useGetList("eos_contract_runs", {
+    pagination: { page: 1, perPage: 1 },
+    sort: { field: "started_at", order: "DESC" },
+  });
+  const r: any = data?.[0];
+  return (
+    <span
+      className="text-xs text-muted-foreground"
+      data-testid="eos-contract-last-run"
+    >
+      Last nightly run:{" "}
+      {r
+        ? `${new Date(r.finished_at ?? r.started_at).toLocaleString("en-US", { timeZone: "America/Los_Angeles" })} PT (${r.trigger}, ${r.signals ?? 0} signals)`
+        : "never"}
+      . Schedule: daily ~2 AM PT.
+    </span>
+  );
+};
+
+/** Portfolio block: stored nightly signals. Rendered only for private members. */
+const ContractsDueInner = () => {
+  const { data } = useGetList("eos_contract_signal_rows", {
+    pagination: { page: 1, perPage: 50 },
+    sort: { field: "due_date", order: "ASC" },
+    filter: { "signal@in": "(missed,upcoming)" },
+  });
+  const rows = data ?? [];
+  return (
+    <section
+      className="rounded border p-3 flex flex-col gap-2 min-w-0"
+      data-testid="eos-contracts-due"
+    >
+      <div className="flex flex-wrap justify-between gap-2 items-baseline">
+        <h3 className="font-semibold">Contracts due (private)</h3>
+        <Link className="text-sm underline" to="/eos/contract-signals">
+          All clause signals
+        </Link>
+      </div>
+      <LastRun />
+      {rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Nothing missed or inside the lead window.
+        </p>
+      ) : (
+        rows.map((r: any) => (
+          <Link
+            key={r.obligation_id}
+            to={`/eos_contract_obligations/${r.obligation_id}`}
+            className="text-sm flex flex-wrap justify-between gap-2 min-w-0"
+          >
+            <span className="break-words min-w-0">{r.title}</span>
+            <span className="flex gap-1 items-center">
+              <Badge
+                variant={r.signal === "missed" ? "destructive" : "outline"}
+              >
+                {r.signal}
+              </Badge>
+              <span className="text-muted-foreground">{r.due_date}</span>
+            </span>
+          </Link>
+        ))
+      )}
+    </section>
+  );
+};
+
+export const ContractsDueBlock = () => {
+  const ok = usePrivateMember();
+  if (!ok) return null;
+  return <ContractsDueInner />;
+};

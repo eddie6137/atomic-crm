@@ -246,7 +246,7 @@ export const ExistingAttachments = ({ editable }: { editable?: boolean }) => {
           key={a.path}
           className="flex items-center gap-2 text-sm text-left underline"
           onClick={() =>
-            openSignedAttachment(a.path).catch((e) =>
+            openSignedAttachment(a.path, a.bucket).catch((e) =>
               notify(e.message, { type: "error" }),
             )
           }

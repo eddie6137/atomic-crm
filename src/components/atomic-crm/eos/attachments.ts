@@ -8,6 +8,7 @@ export type EosAttachment = {
   type?: string;
   size?: number;
   uploaded_at: string;
+  bucket?: string;
 };
 
 /**
@@ -15,7 +16,7 @@ export type EosAttachment = {
  * Supabase Storage upload, see providers/supabase/dataProvider.ts uploadToBucket)
  * but targets a PRIVATE bucket and stores only the object path (no public URL).
  */
-export const eosBeforeSave = async (data: any) => {
+export const eosBeforeSave = async (data: any, bucket: string = EOS_BUCKET) => {
   const out = { ...data };
   const newFiles: any[] = out.new_files ?? [];
   delete out.new_files;
@@ -32,7 +33,7 @@ export const eosBeforeSave = async (data: any) => {
       throw new Error(`${file.name}: file type not allowed`);
     const path = `${crypto.randomUUID()}/${sanitizeFileName(file.name)}`;
     const { error } = await getSupabaseClient()
-      .storage.from(EOS_BUCKET)
+      .storage.from(bucket)
       .upload(path, file, {
         contentType: file.type || "application/octet-stream",
         upsert: false,
@@ -44,6 +45,7 @@ export const eosBeforeSave = async (data: any) => {
       type: file.type,
       size: file.size,
       uploaded_at: new Date().toISOString(),
+      ...(bucket !== EOS_BUCKET ? { bucket } : {}),
     });
   }
   out.attachments = [...existing, ...uploaded];
@@ -53,9 +55,12 @@ export const eosBeforeSave = async (data: any) => {
   return out;
 };
 
-export const openSignedAttachment = async (path: string) => {
+export const openSignedAttachment = async (
+  path: string,
+  bucket: string = EOS_BUCKET,
+) => {
   const { data, error } = await getSupabaseClient()
-    .storage.from(EOS_BUCKET)
+    .storage.from(bucket)
     .createSignedUrl(path, 60);
   if (error || !data) throw new Error(error?.message ?? "Cannot sign URL");
   window.open(data.signedUrl, "_blank", "noopener,noreferrer");
