@@ -12,6 +12,7 @@ export const englishCrmMessages = {
         nb_contacts: "Number of contacts",
         revenue: "Revenue",
         sector: "Sector",
+        relationship: "Relationship",
         size: "Size",
         tax_identifier: "Tax Identifier",
         address: "Address",
@@ -520,6 +521,7 @@ export const englishCrmMessages = {
       about: "About",
       companies: {
         sectors: "Sectors",
+        relationships: "Relationships",
       },
       dark_mode_logo: "Dark Mode Logo",
       deals: {

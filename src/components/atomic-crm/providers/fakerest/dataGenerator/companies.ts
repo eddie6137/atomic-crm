@@ -28,6 +28,14 @@ export const generateCompanies = (db: Db, size = 55): Required<Company>[] => {
         src: `https://marmelab.com/react-admin-crm/logos/${id}.png`,
       } as RAFile,
       sector: random.arrayElement(defaultCompanySectors).value,
+      relationship: random.arrayElement([
+        "client",
+        "prospect",
+        "lead",
+        "partner",
+        "past_client",
+        null,
+      ]),
       size: random.arrayElement(sizes) as 1 | 10 | 50 | 250 | 500,
       linkedin_url: `https://www.linkedin.com/company/${name
         .toLowerCase()
