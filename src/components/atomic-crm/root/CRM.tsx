@@ -334,6 +334,7 @@ const MobileAdmin = (
             element={<ForgotPasswordPage />}
           />
           <Route path={OAuthConsentPage.path} element={<OAuthConsentPage />} />
+          <Route path={GrokOsPage.path} element={<GrokOsPage />} />
         </CustomRoutes>
         <CustomRoutes>
           <Route
