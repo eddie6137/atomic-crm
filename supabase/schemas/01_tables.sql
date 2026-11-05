@@ -15,6 +15,7 @@ create table public.companies (
     created_at timestamp with time zone not null default now(),
     name text not null,
     sector text,
+    relationship text,
     size smallint,
     linkedin_url text,
     website extensions.citext,

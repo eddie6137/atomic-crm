@@ -1,4 +1,4 @@
-import { Building, Truck, Users } from "lucide-react";
+import { Building, HeartHandshake, Truck, Users } from "lucide-react";
 import { FilterLiveForm, useGetIdentity, useTranslate } from "ra-core";
 import { ToggleFilterButton } from "@/components/admin/toggle-filter-button";
 import { SearchInput } from "@/components/admin/search-input";
@@ -11,7 +11,7 @@ import { sizes } from "./sizes";
 
 export const CompanyListFilter = () => {
   const { identity } = useGetIdentity();
-  const { companySectors } = useConfigurationContext();
+  const { companySectors, companyRelationships } = useConfigurationContext();
   const translate = useTranslate();
   const translatedSizes = sizes.map((size) => ({
     ...size,
@@ -22,6 +22,20 @@ export const CompanyListFilter = () => {
       <FilterLiveForm>
         <SearchInput source="q" />
       </FilterLiveForm>
+
+      <FilterCategory
+        icon={<HeartHandshake className="h-4 w-4" />}
+        label="resources.companies.fields.relationship"
+      >
+        {companyRelationships.map((r) => (
+          <ToggleFilterButton
+            className="w-full justify-between"
+            label={r.label}
+            key={r.value}
+            value={{ relationship: r.value }}
+          />
+        ))}
+      </FilterCategory>
 
       <FilterCategory
         icon={<Building className="h-4 w-4" />}

@@ -26,6 +26,15 @@ export const defaultCompanySectors = [
   { value: "utilities", label: "Utilities" },
 ];
 
+/** Company relationship to Amplify; configurable in Settings like companySectors/dealStages. */
+export const defaultCompanyRelationships = [
+  { value: "client", label: "Client" },
+  { value: "prospect", label: "Prospect" },
+  { value: "lead", label: "Lead" },
+  { value: "partner", label: "Partner" },
+  { value: "past_client", label: "Past client" },
+];
+
 export const defaultDealStages = [
   { value: "opportunity", label: "Opportunity" },
   { value: "proposal-sent", label: "Proposal Sent" },
@@ -66,6 +75,7 @@ export const defaultTaskTypes = [
 
 export const defaultConfiguration: ConfigurationContextValue = {
   companySectors: defaultCompanySectors,
+  companyRelationships: defaultCompanyRelationships,
   currency: defaultCurrency,
   dealCategories: defaultDealCategories,
   dealPipelineStatuses: defaultDealPipelineStatuses,

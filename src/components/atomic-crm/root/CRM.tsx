@@ -14,6 +14,7 @@ import { Admin } from "@/components/admin/admin";
 import { ForgotPasswordPage } from "@/components/supabase/forgot-password-page";
 import { SetPasswordPage } from "@/components/supabase/set-password-page";
 import { OAuthConsentPage } from "@/components/supabase/oauth-consent-page";
+import { GrokOsPage } from "../grok-os/GrokOsPage";
 
 import companies from "../companies";
 import contacts from "../contacts";
@@ -53,6 +54,7 @@ import {
 } from "./ConfigurationContext";
 import type { CrmDataProvider } from "../providers/types";
 import {
+  defaultCompanyRelationships,
   defaultCompanySectors,
   defaultCurrency,
   defaultDarkModeLogo,
@@ -129,6 +131,7 @@ export type CRMProps = {
  */
 export const CRM = ({
   companySectors = defaultCompanySectors,
+  companyRelationships = defaultCompanyRelationships,
   currency = defaultCurrency,
   dealCategories = defaultDealCategories,
   dealPipelineStatuses = defaultDealPipelineStatuses,
@@ -165,6 +168,7 @@ export const CRM = ({
     if (!store.getItem(CONFIGURATION_STORE_KEY)) {
       store.setItem(CONFIGURATION_STORE_KEY, {
         companySectors,
+        companyRelationships,
         currency,
         dealCategories,
         dealPipelineStatuses,
@@ -267,6 +271,7 @@ const DesktopAdmin = (
           element={<ForgotPasswordPage />}
         />
         <Route path={OAuthConsentPage.path} element={<OAuthConsentPage />} />
+        <Route path={GrokOsPage.path} element={<GrokOsPage />} />
       </CustomRoutes>
 
       <CustomRoutes>

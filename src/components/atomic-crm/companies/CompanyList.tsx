@@ -10,6 +10,7 @@ import { TopToolbar } from "../layout/TopToolbar";
 import { CompanyEmpty } from "./CompanyEmpty";
 import { CompanyListFilter } from "./CompanyListFilter";
 import { ImageList } from "./GridList";
+import { RelationshipTabs } from "./CompanyRelationship";
 
 export const CompanyList = () => {
   const { identity } = useGetIdentity();
@@ -37,7 +38,8 @@ const CompanyListLayout = () => {
   return (
     <div className="w-full flex flex-row gap-8">
       <CompanyListFilter />
-      <div className="flex flex-col flex-1 gap-4">
+      <div className="flex flex-col flex-1 gap-4 min-w-0">
+        <RelationshipTabs />
         <ImageList />
       </div>
     </div>

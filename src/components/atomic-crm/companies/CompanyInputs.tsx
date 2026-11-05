@@ -96,7 +96,7 @@ const CompanyContactInputs = () => {
 
 const CompanyContextInputs = () => {
   const translate = useTranslate();
-  const { companySectors } = useConfigurationContext();
+  const { companySectors, companyRelationships } = useConfigurationContext();
   const translatedSizes = sizes.map((size) => ({
     ...size,
     name: getTranslatedCompanySizeLabel(size, translate),
@@ -108,6 +108,14 @@ const CompanyContextInputs = () => {
           _: "Context",
         })}
       </h6>
+      <SelectInput
+        source="relationship"
+        choices={companyRelationships}
+        optionText="label"
+        optionValue="value"
+        emptyText="—"
+        helperText={false}
+      />
       <SelectInput
         source="sector"
         choices={companySectors}
