@@ -236,7 +236,7 @@ const getDataProviderWithCustomMethods = () => {
       );
     },
     async isInitialized() {
-      return getIsInitialized();
+      return (await getIsInitialized()) ?? false;
     },
     async globalSearch(
       query: string,

@@ -40,9 +40,12 @@ export async function getIsInitialized() {
     return cachedValue === "true";
   }
 
-  const { data } = await getSupabaseClient()
+  const { data, error } = await getSupabaseClient()
     .from("init_state")
     .select("is_initialized");
+  // A transient read error (network, token refresh race) must not be treated as
+  // "not initialized", which would sign the user out on page refresh.
+  if (error) return null;
   const isInitialized = data?.at(0)?.is_initialized > 0;
 
   if (isInitialized) {
@@ -133,7 +136,7 @@ export const getAuthProvider = (): AuthProvider => {
 
       const isInitialized = await getIsInitialized();
 
-      if (!isInitialized) {
+      if (isInitialized === false) {
         await getSupabaseClient().auth.signOut();
         throw {
           redirectTo: "/sign-up",
@@ -145,7 +148,7 @@ export const getAuthProvider = (): AuthProvider => {
     },
     canAccess: async (params) => {
       const isInitialized = await getIsInitialized();
-      if (!isInitialized) return false;
+      if (isInitialized === false) return false;
 
       // Get the current user
       const sale = await getSale();
