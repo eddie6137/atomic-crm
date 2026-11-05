@@ -1,14 +1,16 @@
 import { Link, useLocation } from "react-router";
 
 const tabs = [
-  { to: "/eos", label: "Accounts" },
+  { to: "/eos", label: "Portfolio" },
+  { to: "/eos/hot-topics", label: "Hot Topics" },
+  { to: "/eos/l10", label: "L10" },
+  { to: "/eos/team", label: "Team" },
   { to: "/eos_projects", label: "Projects" },
   { to: "/eos_commitments", label: "Commitments" },
   { to: "/eos_issues", label: "Issues" },
   { to: "/eos_deliverables", label: "Deliverables" },
   { to: "/eos_rocks", label: "Rocks" },
   { to: "/eos/scorecard", label: "Scorecard" },
-  { to: "/eos/l10", label: "L10" },
   { to: "/eos/proposals", label: "Proposals" },
   { to: "/eos/import", label: "Import" },
 ];

@@ -35,6 +35,8 @@ import sales from "../sales";
 import {
   EosHome,
   EosImportPage,
+  HotTopicsPage,
+  TeamPage,
   L10Page,
   ProposalsPage,
   ScorecardPage,
@@ -283,6 +285,8 @@ const DesktopAdmin = (
         <Route path={EosImportPage.path} element={<EosImportPage />} />
         <Route path={ScorecardPage.path} element={<ScorecardPage />} />
         <Route path={L10Page.path} element={<L10Page />} />
+        <Route path={HotTopicsPage.path} element={<HotTopicsPage />} />
+        <Route path={TeamPage.path} element={<TeamPage />} />
         <Route path={ProposalsPage.path} element={<ProposalsPage />} />
       </CustomRoutes>
       <Resource name="deals" {...deals} />
@@ -372,6 +376,8 @@ const MobileAdmin = (
           <Route path={EosImportPage.path} element={<EosImportPage />} />
           <Route path={ScorecardPage.path} element={<ScorecardPage />} />
           <Route path={L10Page.path} element={<L10Page />} />
+          <Route path={HotTopicsPage.path} element={<HotTopicsPage />} />
+          <Route path={TeamPage.path} element={<TeamPage />} />
           <Route path={ProposalsPage.path} element={<ProposalsPage />} />
         </CustomRoutes>
         <Resource name="eos_projects" {...eosProjects} />

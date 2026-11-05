@@ -2,30 +2,60 @@ import { useGetList } from "ra-core";
 import { Link } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EosNav } from "./EosNav";
+import {
+  idsFilter,
+  ScopeTabs,
+  useRelationshipScope,
+} from "./useRelationshipScope";
 
-/** Minimal per-account counts strip (full v1b signals deferred). Reads invoker-rights view eos_account_summary. */
+/** Portfolio dashboard: per-account health + signals, scoped by relationship (default Clients). */
 export const EosHome = () => {
-  const { data, isPending, error } = useGetList("eos_account_summary", {
-    pagination: { page: 1, perPage: 200 },
-    sort: { field: "name", order: "ASC" },
-  });
+  const { scope, setScope, ids, isPending: cPending } = useRelationshipScope();
+  const { data, isPending, error } = useGetList(
+    "eos_account_summary",
+    {
+      pagination: { page: 1, perPage: 500 },
+      sort: { field: "name", order: "ASC" },
+      filter: { "id@in": idsFilter(ids) },
+    },
+    { enabled: !cPending },
+  );
+  const rows = [...(data ?? [])].sort(
+    (a: any, b: any) => health(b) - health(a),
+  );
   return (
-    <div className="flex flex-col gap-2 p-2">
+    <div className="flex flex-col gap-2 p-2 min-w-0">
       <EosNav />
-      <h2 className="text-xl font-semibold">EOS · Account activity</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-xl font-semibold">EOS · Portfolio</h2>
+        <ScopeTabs scope={scope} setScope={setScope} />
+      </div>
       <p className="text-sm text-muted-foreground">
-        v1a preview (staging, synthetic data). Counts link to filtered lists.
+        Accounts sorted by risk. Every count links to its filtered list.
       </p>
-      {isPending && <p>Loading…</p>}
+      {(isPending || cPending) && <p>Loading…</p>}
       {error && <p className="text-red-600">Could not load summary</p>}
+      {!isPending && !cPending && rows.length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          No accounts in this scope.
+        </p>
+      )}
       <div
         className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
         data-testid="eos-accounts"
       >
-        {(data ?? []).map((a: any) => (
-          <Card key={a.id}>
+        {rows.map((a: any) => (
+          <Card key={a.id} data-testid="eos-portfolio-card">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">{a.name}</CardTitle>
+              <CardTitle className="text-base flex items-center justify-between gap-2">
+                <Link
+                  to={`/companies/${a.id}/show/eos`}
+                  className="break-words"
+                >
+                  {a.name}
+                </Link>
+                <HealthDot score={health(a)} />
+              </CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-2 text-sm">
               <AccountSignals a={a} />
@@ -34,6 +64,28 @@ export const EosHome = () => {
         ))}
       </div>
     </div>
+  );
+};
+/** Risk score: red-flag signals weigh most. */
+export const health = (a: any) =>
+  3 * (a.overdue_commitments ?? 0) +
+  3 * (a.off_track_rocks ?? 0) +
+  2 * (a.deliverables_due_7d ?? 0) +
+  2 * (a.stale_projects ?? 0) +
+  (a.open_issues ?? 0) +
+  (a.missing_owner_or_date ?? 0);
+const HealthDot = ({ score }: { score: number }) => {
+  const [cls, label] =
+    score >= 6
+      ? ["bg-red-500", "At risk"]
+      : score >= 1
+        ? ["bg-amber-400", "Watch"]
+        : ["bg-green-500", "Healthy"];
+  return (
+    <span className="flex items-center gap-1 text-xs font-normal text-muted-foreground shrink-0">
+      <span className={`inline-block size-2.5 rounded-full ${cls}`} />
+      {label}
+    </span>
   );
 };
 EosHome.path = "/eos";

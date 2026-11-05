@@ -6,3 +6,5 @@ export { eosDeliverables, eosRocks, eosMetrics } from "./EosResourcesV1b";
 export { ScorecardPage } from "./ScorecardPage";
 export { L10Page } from "./L10Page";
 export { ProposalsPage } from "./proposals/ProposalsPage";
+export { HotTopicsPage } from "./HotTopicsPage";
+export { TeamPage } from "./TeamPage";

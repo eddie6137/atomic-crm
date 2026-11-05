@@ -600,6 +600,10 @@
           "type": "registry:component"
         },
         {
+          "path": "src/components/atomic-crm/eos/useRelationshipScope.tsx",
+          "type": "registry:component"
+        },
+        {
           "path": "src/components/atomic-crm/eos/links.ts",
           "type": "registry:component"
         },
@@ -616,11 +620,19 @@
           "type": "registry:component"
         },
         {
+          "path": "src/components/atomic-crm/eos/TeamPage.tsx",
+          "type": "registry:component"
+        },
+        {
           "path": "src/components/atomic-crm/eos/ScorecardPage.tsx",
           "type": "registry:component"
         },
         {
           "path": "src/components/atomic-crm/eos/L10Page.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/components/atomic-crm/eos/HotTopicsPage.tsx",
           "type": "registry:component"
         },
         {
