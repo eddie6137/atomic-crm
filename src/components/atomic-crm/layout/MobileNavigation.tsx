@@ -6,7 +6,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { Home, ListTodo, Plus, Settings, Users } from "lucide-react";
+import { Home, ListTodo, Plus, Settings, Target, Users } from "lucide-react";
 import { useTranslate } from "ra-core";
 import { Link, matchPath, useLocation, useMatch } from "react-router";
 import { ContactCreateSheet } from "../contacts/ContactCreateSheet";
@@ -29,6 +29,8 @@ export const MobileNavigation = () => {
     currentPath = "/tasks";
   } else if (matchPath("/deals/*", location.pathname)) {
     currentPath = "/deals";
+  } else if (/^\/eos/.test(location.pathname)) {
+    currentPath = "/eos";
   } else {
     currentPath = false;
   }
@@ -74,6 +76,12 @@ export const MobileNavigation = () => {
             Icon={ListTodo}
             label={translate("resources.tasks.name", { smart_count: 2 })}
             isActive={currentPath === "/tasks"}
+          />
+          <NavigationButton
+            href="/eos"
+            Icon={Target}
+            label="EOS"
+            isActive={currentPath === "/eos"}
           />
           <SettingsButton />
         </>

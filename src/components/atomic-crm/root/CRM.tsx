@@ -31,6 +31,13 @@ import {
   getDataProvider as defaultDataProviderBuilder,
 } from "../providers/supabase";
 import sales from "../sales";
+import {
+  EosHome,
+  EosImportPage,
+  eosCommitments,
+  eosIssues,
+  eosProjects,
+} from "../eos";
 import { SettingsPageMobile } from "../settings/SettingsPageMobile";
 import { ProfilePage } from "../settings/ProfilePage";
 import { SettingsPage } from "../settings/SettingsPage";
@@ -261,8 +268,14 @@ const DesktopAdmin = (
         <Route path={SettingsPage.path} element={<SettingsPage />} />
         <Route path={ImportPage.path} element={<ImportPage />} />
         <Route path={ChangelogPage.path} element={<ChangelogPage />} />
+        <Route path={EosHome.path} element={<EosHome />} />
+        <Route path={EosImportPage.path} element={<EosImportPage />} />
       </CustomRoutes>
       <Resource name="deals" {...deals} />
+      <Resource name="eos_projects" {...eosProjects} />
+      <Resource name="eos_commitments" {...eosCommitments} />
+      <Resource name="eos_issues" {...eosIssues} />
+      <Resource name="eos_account_summary" />
       <Resource name="contacts" {...contacts} />
       <Resource name="companies" {...companies} />
       <Resource name="contact_notes" />
@@ -336,7 +349,14 @@ const MobileAdmin = (
             element={<SettingsPageMobile />}
           />
           <Route path={ChangelogPage.path} element={<ChangelogPage />} />
+          <Route path={EosHome.path} element={<EosHome />} />
+          <Route path={EosImportPage.path} element={<EosImportPage />} />
         </CustomRoutes>
+        <Resource name="eos_projects" {...eosProjects} />
+        <Resource name="eos_commitments" {...eosCommitments} />
+        <Resource name="eos_issues" {...eosIssues} />
+        <Resource name="eos_account_summary" />
+        <Resource name="sales" />
         <Resource
           name="contacts"
           list={ContactListMobile}

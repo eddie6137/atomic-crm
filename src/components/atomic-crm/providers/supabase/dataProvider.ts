@@ -20,6 +20,7 @@ import type {
 } from "../../types";
 import type { ConfigurationContextValue } from "../../root/ConfigurationContext";
 import { ATTACHMENTS_BUCKET } from "../commons/attachments";
+import { eosBeforeSave } from "../../eos/attachments";
 import { getIsInitialized } from "./authProvider";
 import { searchDealCategories } from "./searchDealCategories";
 import { getSupabaseClient } from "./supabase";
@@ -300,7 +301,19 @@ const processConfigLogo = async (logo: any): Promise<string> => {
   return logo?.src ?? "";
 };
 
+const eosCallbacks: ResourceCallbacks[] = [
+  "eos_projects",
+  "eos_commitments",
+  "eos_issues",
+].map((resource) => ({
+  resource,
+  beforeSave: async (data: any) => eosBeforeSave(data),
+  beforeGetList: async (params: GetListParams) =>
+    applyFullTextSearch(["title"])(params),
+}));
+
 const lifeCycleCallbacks: ResourceCallbacks[] = [
+  ...eosCallbacks,
   {
     resource: "configuration",
     beforeUpdate: async (params) => {
