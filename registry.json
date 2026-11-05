@@ -596,6 +596,78 @@
           "type": "registry:component"
         },
         {
+          "path": "src/components/atomic-crm/eos/links.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/components/atomic-crm/eos/index.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/components/atomic-crm/eos/constants.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/components/atomic-crm/eos/attachments.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/components/atomic-crm/eos/ScorecardPage.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/components/atomic-crm/eos/L10Page.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/components/atomic-crm/eos/EosShared.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/components/atomic-crm/eos/EosResourcesV1b.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/components/atomic-crm/eos/EosResources.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/components/atomic-crm/eos/EosNav.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/components/atomic-crm/eos/EosListBody.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/components/atomic-crm/eos/EosHome.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/components/atomic-crm/eos/CompanyEosTab.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/components/atomic-crm/eos/proposals/fixtureProposals.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/components/atomic-crm/eos/proposals/ProposalsPage.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/components/atomic-crm/eos/import/sheetImport.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/components/atomic-crm/eos/import/fixture.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/components/atomic-crm/eos/import/EosImportPage.tsx",
+          "type": "registry:component"
+        },
+        {
           "path": "src/components/atomic-crm/deals/stages.ts",
           "type": "registry:component"
         },
