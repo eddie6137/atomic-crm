@@ -1,3 +1,4 @@
+import { RelationshipBadge } from "./CompanyRelationship";
 import { ReferenceManyField } from "@/components/admin/reference-many-field";
 import { SortButton } from "@/components/admin/sort-button";
 import { buttonVariants } from "@/components/ui/button";
@@ -123,6 +124,10 @@ const CompanyShowContent = () => {
               <h5 className="text-xl font-semibold ml-2 flex-1">
                 {record.name}
               </h5>
+              <RelationshipBadge
+                value={record.relationship}
+                className="self-center"
+              />
             </div>
             <Tabs defaultValue={currentTab} onValueChange={handleTabChange}>
               <TabsList className="grid w-full grid-cols-3">
