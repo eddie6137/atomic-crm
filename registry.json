@@ -612,6 +612,14 @@
           "type": "registry:component"
         },
         {
+          "path": "src/components/atomic-crm/eos/contracts.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/components/atomic-crm/eos/contractResources.ts",
+          "type": "registry:component"
+        },
+        {
           "path": "src/components/atomic-crm/eos/constants.ts",
           "type": "registry:component"
         },

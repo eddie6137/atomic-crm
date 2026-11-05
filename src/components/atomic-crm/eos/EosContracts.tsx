@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useGetList, useRecordContext } from "ra-core";
 import { Link } from "react-router";
 import { ArrayInput } from "@/components/admin/array-input";
@@ -17,7 +17,14 @@ import { SimpleForm } from "@/components/admin/simple-form";
 import { SimpleFormIterator } from "@/components/admin/simple-form-iterator";
 import { TextInput } from "@/components/admin/text-input";
 import { Badge } from "@/components/ui/badge";
-import { getSupabaseClient } from "../providers/supabase/supabase";
+import {
+  ANCHORS,
+  CONTRACT_STATUSES,
+  OBLIGATION_STATUSES,
+  OBLIGATION_TYPES,
+  OFFSET_UNITS,
+  usePrivateMember,
+} from "./contracts";
 import { TopToolbar } from "../layout/TopToolbar";
 import { choices } from "./constants";
 import {
@@ -30,45 +37,6 @@ import { CompanyInput, OwnerInput, ProjectInput } from "./EosShared";
 import { EosListBody } from "./EosListBody";
 import { EosNav } from "./EosNav";
 import { validateHttpsUrl } from "./links";
-
-export const CONTRACT_STATUSES = ["draft", "active", "expired", "terminated"];
-export const OBLIGATION_TYPES = [
-  "fee_step_up",
-  "review",
-  "renewal",
-  "notice",
-  "threshold",
-  "scope_addendum",
-];
-export const OBLIGATION_STATUSES = [
-  "proposed",
-  "open",
-  "upcoming",
-  "fulfilled",
-  "missed",
-  "waived",
-  "not_applicable",
-];
-export const ANCHORS = [
-  "contract_start",
-  "contract_end",
-  "period_start",
-  "period_end",
-  "invoice_date",
-  "scope_event",
-];
-export const OFFSET_UNITS = ["day", "business_day", "month", "year"];
-
-/** Server-side check (RLS is the real gate; this only decides what to render). */
-export const usePrivateMember = () => {
-  const [ok, setOk] = useState<boolean | null>(null);
-  useEffect(() => {
-    getSupabaseClient()
-      .rpc("eos_is_private_member")
-      .then(({ data, error }) => setOk(!error && data === true));
-  }, []);
-  return ok;
-};
 
 export const PrivateGate = ({ children }: { children: ReactNode }) => {
   const ok = usePrivateMember();
@@ -440,40 +408,51 @@ export const ContractSignalsPage = () => {
 };
 ContractSignalsPage.path = "/eos/contract-signals";
 
-const gatedEdit = (resource: string, Form: () => ReactNode) => () => (
+const ContractEditBase = () => (
+  <Edit
+    resource="eos_contracts"
+    mutationMode="pessimistic"
+    actions={
+      <TopToolbar>
+        <ArchiveButton resource="eos_contracts" />
+      </TopToolbar>
+    }
+  >
+    <ContractForm />
+  </Edit>
+);
+export const ContractEdit = () => (
   <PrivateGate>
-    <Edit
-      resource={resource}
-      mutationMode="pessimistic"
-      actions={
-        <TopToolbar>
-          <ArchiveButton resource={resource} />
-        </TopToolbar>
-      }
-    >
-      <Form />
-    </Edit>
+    <ContractEditBase />
   </PrivateGate>
 );
-const gatedCreate = (resource: string, Form: () => ReactNode) => () => (
+export const ContractCreate = () => (
   <PrivateGate>
-    <Create resource={resource} redirect="edit">
-      <Form />
+    <Create resource="eos_contracts" redirect="edit">
+      <ContractForm />
     </Create>
   </PrivateGate>
 );
-
-export const eosContracts = {
-  list: ContractList,
-  create: gatedCreate("eos_contracts", ContractForm),
-  edit: gatedEdit("eos_contracts", ContractForm),
-  recordRepresentation: "title",
-  options: { label: "EOS Contracts" },
-};
-export const eosContractObligations = {
-  list: ObligationList,
-  create: gatedCreate("eos_contract_obligations", ObligationForm),
-  edit: gatedEdit("eos_contract_obligations", ObligationForm),
-  recordRepresentation: "title",
-  options: { label: "EOS Contract clauses" },
-};
+export const ObligationEdit = () => (
+  <PrivateGate>
+    <Edit
+      resource="eos_contract_obligations"
+      mutationMode="pessimistic"
+      actions={
+        <TopToolbar>
+          <ArchiveButton resource="eos_contract_obligations" />
+        </TopToolbar>
+      }
+    >
+      <ObligationForm />
+    </Edit>
+  </PrivateGate>
+);
+export const ObligationCreate = () => (
+  <PrivateGate>
+    <Create resource="eos_contract_obligations" redirect="edit">
+      <ObligationForm />
+    </Create>
+  </PrivateGate>
+);
+export { ContractList, ObligationList };
