@@ -393,7 +393,10 @@ export const ContractSignalsPage = () => {
   });
   return (
     <PrivateGate>
-      <div className="flex flex-col gap-3" data-testid="eos-contract-signals">
+      <div
+        className="flex flex-col gap-3 min-w-0 max-w-full"
+        data-testid="eos-contract-signals"
+      >
         <EosNav />
         <h2 className="text-lg font-semibold">
           EOS · Contract clauses: overdue / missed / upcoming
@@ -422,7 +425,7 @@ export const ContractSignalsPage = () => {
                       className="rounded border p-2 text-sm flex flex-wrap justify-between gap-2 min-w-0"
                     >
                       <span className="break-words min-w-0">{r.title}</span>
-                      <span className="text-muted-foreground shrink-0">
+                      <span className="text-muted-foreground break-words min-w-0">
                         {r.due_date ?? r.review_reason ?? "—"}
                         {r.days_until != null ? ` (${r.days_until}d)` : ""}
                       </span>
