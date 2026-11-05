@@ -592,6 +592,10 @@
           "type": "registry:component"
         },
         {
+          "path": "src/components/atomic-crm/grok-os/GrokOsPage.tsx",
+          "type": "registry:component"
+        },
+        {
           "path": "src/components/atomic-crm/filters/FilterCategory.tsx",
           "type": "registry:component"
         },
@@ -861,6 +865,10 @@
         },
         {
           "path": "src/components/atomic-crm/companies/CompanyShow.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/components/atomic-crm/companies/CompanyRelationship.tsx",
           "type": "registry:component"
         },
         {

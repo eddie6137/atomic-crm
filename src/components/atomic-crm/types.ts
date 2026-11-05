@@ -55,6 +55,7 @@ export type Company = {
   name: string;
   logo: RAFile;
   sector: string;
+  relationship?: string | null;
   size: 1 | 10 | 50 | 250 | 500;
   linkedin_url: string;
   website: string;

@@ -123,6 +123,7 @@ const transformFormValues = (data: Record<string, any>) => ({
     darkModeLogo: data.darkModeLogo,
     currency: data.currency,
     companySectors: ensureValues(data.companySectors),
+    companyRelationships: ensureValues(data.companyRelationships),
     dealCategories: ensureValues(data.dealCategories),
     taskTypes: ensureValues(data.taskTypes),
     dealStages: ensureValues(data.dealStages),
@@ -171,6 +172,7 @@ const SettingsForm = () => {
       darkModeLogo: { src: config.darkModeLogo },
       currency: config.currency,
       companySectors: config.companySectors,
+      companyRelationships: config.companyRelationships,
       dealCategories: config.dealCategories,
       taskTypes: config.taskTypes,
       dealStages: config.dealStages,
@@ -208,7 +210,7 @@ const SettingsFormFields = () => {
           ? "tasks"
           : key === "noteStatuses"
             ? "notes"
-            : key === "companySectors"
+            : key === "companySectors" || key === "companyRelationships"
               ? "companies"
               : "branding";
     document.getElementById(sectionId)?.scrollIntoView({
@@ -344,6 +346,20 @@ const SettingsFormFields = () => {
               helperText={false}
             >
               <SimpleFormIterator disableReordering disableClear>
+                <TextInput source="label" label={false} />
+              </SimpleFormIterator>
+            </ArrayInput>
+            <h3 className="text-lg font-medium text-muted-foreground">
+              {translate("crm.settings.companies.relationships", {
+                _: "Relationships",
+              })}
+            </h3>
+            <ArrayInput
+              source="companyRelationships"
+              label={false}
+              helperText={false}
+            >
+              <SimpleFormIterator disableClear>
                 <TextInput source="label" label={false} />
               </SimpleFormIterator>
             </ArrayInput>

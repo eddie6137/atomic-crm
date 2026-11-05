@@ -14,6 +14,7 @@ export const frenchCrmMessages = {
         nb_contacts: "Nombre de contacts",
         revenue: "Chiffre d'affaires",
         sector: "Secteur",
+        relationship: "Relation",
         size: "Taille",
         tax_identifier: "Identifiant fiscal",
         address: "Adresse",
@@ -529,6 +530,7 @@ export const frenchCrmMessages = {
       about: "À propos",
       companies: {
         sectors: "Secteurs",
+        relationships: "Relations",
       },
       dark_mode_logo: "Logo du mode sombre",
       deals: {
