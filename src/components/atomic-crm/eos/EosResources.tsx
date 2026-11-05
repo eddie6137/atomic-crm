@@ -38,6 +38,8 @@ import {
 } from "./EosShared";
 import { EosNav } from "./EosNav";
 import { EosListBody } from "./EosListBody";
+import { EosBulkToolbar } from "./EosBulkActions";
+import { COMMITMENT_BULK, ISSUE_BULK, PROJECT_BULK } from "./bulkFields";
 
 const saleName = (r: any) => `${r.first_name} ${r.last_name}`;
 export const required = (v: any) =>
@@ -133,8 +135,11 @@ export const ProjectList = () => (
       actions={<ListActions label="New project" />}
     >
       <SavedViews openStatuses={["planned", "active", "on_hold"]} />
-      <EosListBody>
-        <DataTable rowClick="edit" bulkActionButtons={false}>
+      <EosListBody bulkFields={PROJECT_BULK}>
+        <DataTable
+          rowClick="edit"
+          bulkActionsToolbar={<EosBulkToolbar fields={PROJECT_BULK} />}
+        >
           <DataTable.Col source="title" />
           {CommonCols()}
           <DataTable.Col source="status" />
@@ -212,8 +217,11 @@ export const CommitmentList = () => (
       actions={<ListActions label="New commitment" />}
     >
       <SavedViews openStatuses={COMMITMENT_OPEN} hasDue />
-      <EosListBody>
-        <DataTable rowClick="edit" bulkActionButtons={false}>
+      <EosListBody bulkFields={COMMITMENT_BULK}>
+        <DataTable
+          rowClick="edit"
+          bulkActionsToolbar={<EosBulkToolbar fields={COMMITMENT_BULK} />}
+        >
           <DataTable.Col source="title" />
           {CommonCols()}
           <DataTable.Col source="status" />
@@ -293,8 +301,11 @@ export const IssueList = () => (
       actions={<ListActions label="New issue" />}
     >
       <SavedViews openStatuses={ISSUE_OPEN} hasDue />
-      <EosListBody>
-        <DataTable rowClick="edit" bulkActionButtons={false}>
+      <EosListBody bulkFields={ISSUE_BULK}>
+        <DataTable
+          rowClick="edit"
+          bulkActionsToolbar={<EosBulkToolbar fields={ISSUE_BULK} />}
+        >
           <DataTable.Col source="title" />
           {CommonCols()}
           <DataTable.Col source="status" />

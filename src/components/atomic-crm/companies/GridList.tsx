@@ -18,7 +18,9 @@ const LoadingGridList = () => (
 );
 
 const LoadedGridList = () => {
-  const { data, error, isPending } = useListContext<Company>();
+  const { data, error, isPending, selectedIds, onToggleItem } =
+    useListContext<Company>();
+  const selected = new Set(selectedIds ?? []);
   const translate = useTranslate();
 
   if (isPending || error) return null;
@@ -32,7 +34,17 @@ const LoadedGridList = () => {
     >
       {data.map((record) => (
         <RecordContextProvider key={record.id} value={record}>
-          <CompanyCard />
+          <div className="relative">
+            <CompanyCard />
+            <input
+              type="checkbox"
+              aria-label={`Select ${record.name}`}
+              data-testid="company-select"
+              className={`absolute top-2 left-2 size-4 ${selected.size ? "" : "opacity-40 hover:opacity-100"}`}
+              checked={selected.has(record.id)}
+              onChange={() => onToggleItem(record.id)}
+            />
+          </div>
         </RecordContextProvider>
       ))}
 

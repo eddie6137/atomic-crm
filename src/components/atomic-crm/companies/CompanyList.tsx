@@ -11,6 +11,36 @@ import { CompanyEmpty } from "./CompanyEmpty";
 import { CompanyListFilter } from "./CompanyListFilter";
 import { ImageList } from "./GridList";
 import { RelationshipTabs } from "./CompanyRelationship";
+import { EosBulkToolbar } from "../eos/EosBulkActions";
+import { useConfigurationContext } from "../root/ConfigurationContext";
+
+/** Bulk edit on Companies (Eddie 2:18 PT): relationship + account manager. No delete/archive here. */
+const CompanyBulkToolbar = () => {
+  const { companyRelationships } = useConfigurationContext();
+  return (
+    <EosBulkToolbar
+      archivable={false}
+      fields={[
+        {
+          key: "relationship",
+          label: "Relationship",
+          source: "relationship",
+          kind: "select",
+          options: companyRelationships.map((r) => r.value),
+          optionLabels: Object.fromEntries(
+            companyRelationships.map((r) => [r.value, r.label]),
+          ),
+        },
+        {
+          key: "owner",
+          label: "Account manager",
+          source: "sales_id",
+          kind: "owner",
+        },
+      ]}
+    />
+  );
+};
 
 export const CompanyList = () => {
   const { identity } = useGetIdentity();
@@ -42,6 +72,7 @@ const CompanyListLayout = () => {
         <RelationshipTabs />
         <ImageList />
       </div>
+      <CompanyBulkToolbar />
     </div>
   );
 };

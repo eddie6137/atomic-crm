@@ -616,6 +616,10 @@
           "type": "registry:component"
         },
         {
+          "path": "src/components/atomic-crm/eos/bulkFields.ts",
+          "type": "registry:component"
+        },
+        {
           "path": "src/components/atomic-crm/eos/attachments.ts",
           "type": "registry:component"
         },
@@ -657,6 +661,10 @@
         },
         {
           "path": "src/components/atomic-crm/eos/EosHome.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/components/atomic-crm/eos/EosBulkActions.tsx",
           "type": "registry:component"
         },
         {
