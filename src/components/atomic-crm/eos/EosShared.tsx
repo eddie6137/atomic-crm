@@ -298,6 +298,8 @@ export const DueField = (_: { label?: string; source?: string }) => {
     record.due_date < todayPT() &&
     ![
       "completed",
+      "done",
+      "missed",
       "superseded",
       "cancelled",
       "lapsed",
