@@ -8,11 +8,20 @@ import { findDealLabel } from "../deals/dealUtils";
 import { useConfigurationContext } from "../root/ConfigurationContext";
 import type { Deal } from "../types";
 
-const multiplier = {
+/** Probability weight by stage for the pending revenue bar.
+ * Amplify uses lead→lost (App.tsx / configuration). Upstream defaults kept
+ * so a rolled-back config still charts. Unknown stages contribute 0 (never NaN).
+ */
+const multiplier: Record<string, number> = {
+  lead: 0.2,
+  qualified: 0.3,
+  discovery: 0.4,
+  proposal: 0.5,
+  negotiation: 0.8,
+  delayed: 0.3,
   opportunity: 0.2,
   "proposal-sent": 0.5,
   "in-negociation": 0.8,
-  delayed: 0.3,
 };
 
 const threeMonthsAgo = new Date(
@@ -63,8 +72,7 @@ export const DealsChart = memo(() => {
         pending: dealsByMonth[month]
           .filter((deal: Deal) => !["won", "lost"].includes(deal.stage))
           .reduce((acc: number, deal: Deal) => {
-            // @ts-expect-error - multiplier type issue
-            acc += (deal.amount ?? 0) * multiplier[deal.stage];
+            acc += (deal.amount ?? 0) * (multiplier[deal.stage] ?? 0);
             return acc;
           }, 0),
         lost: dealsByMonth[month]
