@@ -511,23 +511,66 @@ export const ObligationCreate = () => (
 );
 export { ContractList, ObligationList };
 
-/** Last nightly runner execution (private rows; RLS returns nothing to others). */
+/** Last nightly runner execution (private rows; RLS returns nothing to others).
+ * N4: a failed last run, or no successful run in 36h, shows a red badge. */
+const STALE_RUNNER_HOURS = 36;
 export const LastRun = () => {
   const { data } = useGetList("eos_contract_runs", {
     pagination: { page: 1, perPage: 1 },
     sort: { field: "started_at", order: "DESC" },
   });
+  const { data: okRuns } = useGetList("eos_contract_runs", {
+    pagination: { page: 1, perPage: 1 },
+    sort: { field: "started_at", order: "DESC" },
+    filter: { status: "ok" },
+  });
   const r: any = data?.[0];
+  const ok: any = okRuns?.[0];
+  const okAt = ok ? new Date(ok.finished_at ?? ok.started_at).getTime() : 0;
+  const stale =
+    data !== undefined &&
+    okRuns !== undefined &&
+    Date.now() - okAt > STALE_RUNNER_HOURS * 3600_000;
+  const failed = r?.status === "failed";
+  const cov = ok?.calendar_coverage_end as string | undefined;
+  const covSoon =
+    cov && new Date(cov).getTime() - Date.now() < 365 * 24 * 3600_000;
+  const fmt = (x: any) =>
+    `${new Date(x.finished_at ?? x.started_at).toLocaleString("en-US", { timeZone: "America/Los_Angeles" })} PT`;
   return (
     <span
-      className="text-xs text-muted-foreground"
+      className="text-xs text-muted-foreground flex flex-wrap gap-1 items-center"
       data-testid="eos-contract-last-run"
     >
-      Last nightly run:{" "}
-      {r
-        ? `${new Date(r.finished_at ?? r.started_at).toLocaleString("en-US", { timeZone: "America/Los_Angeles" })} PT (${r.trigger}, ${r.signals ?? 0} signals)`
-        : "never"}
-      . Schedule: daily ~2 AM PT.
+      {failed ? (
+        <span
+          className="rounded bg-red-600 text-white px-1.5"
+          data-testid="eos-runner-failed"
+          title={r.error ?? ""}
+        >
+          Last run FAILED {fmt(r)}: {r.error ?? "unknown error"}
+        </span>
+      ) : null}
+      {stale ? (
+        <span
+          className="rounded bg-red-600 text-white px-1.5"
+          data-testid="eos-runner-stale"
+        >
+          Runner stale: no successful run in {STALE_RUNNER_HOURS}h
+        </span>
+      ) : null}
+      {covSoon ? (
+        <span className="rounded bg-amber-500 text-white px-1.5">
+          Holiday calendar ends {cov}
+        </span>
+      ) : null}
+      <span>
+        Last successful run:{" "}
+        {ok
+          ? `${fmt(ok)} (${ok.trigger}, ${ok.signals ?? 0} signals)`
+          : "never"}
+        . Schedule: daily ~2 AM PT.
+      </span>
     </span>
   );
 };

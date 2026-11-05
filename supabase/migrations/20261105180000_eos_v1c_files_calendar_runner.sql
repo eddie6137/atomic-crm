@@ -216,4 +216,5 @@ revoke all on function public.eos_contract_nightly_run(text) from public, anon, 
 
 create extension if not exists pg_cron with schema pg_catalog;
 -- 10:00 UTC = 2:00 AM PST (3:00 AM during PDT). pg_cron schedules are UTC.
+select cron.unschedule(jobid) from cron.job where jobname = 'eos-contract-signals-nightly';
 select cron.schedule('eos-contract-signals-nightly', '0 10 * * *', $$select public.eos_contract_nightly_run('cron')$$);

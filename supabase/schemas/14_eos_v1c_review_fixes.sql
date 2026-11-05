@@ -283,6 +283,11 @@ grant update (first_name, last_name, avatar, email, secondary_emails) on public.
 
 -- recompute existing rows under the new rules
 -- end dates written by the pre-fix trigger were derived: clear so they re-derive with the flag
+-- N7 guard: only clear end dates that equal the old derived value (start + term − 1 day); never manual ones
 update public.eos_contracts set end_date = null
-  where start_date is not null and term_quantity is not null and term_unit is not null;
+  where start_date is not null and term_quantity is not null and term_unit is not null
+    and end_date = (start_date + make_interval(
+        days => case when term_unit = 'day' then term_quantity else 0 end,
+        months => case when term_unit = 'month' then term_quantity else 0 end,
+        years => case when term_unit = 'year' then term_quantity else 0 end))::date - 1;
 update public.eos_contract_obligations set title = title;
