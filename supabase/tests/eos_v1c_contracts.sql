@@ -86,10 +86,13 @@ begin
 
   -- N4: forced failure leaves a failed run row and rolls back the run's work
   select count(*) into n from public.eos_contract_signal_rows;
-  rid := public.eos_contract_nightly_run('force_fail');
+  -- force a failure without a test hook: hide a table the runner writes (rolled back with the test)
+  alter table public.eos_contract_signal_rows rename to eos_contract_signal_rows_hidden;
+  rid := public.eos_contract_nightly_run('test');
+  alter table public.eos_contract_signal_rows_hidden rename to eos_contract_signal_rows;
   select status, error into st, s from public.eos_contract_runs where id = rid;
   select count(*) into n2 from public.eos_contract_signal_rows;
-  if st = 'failed' and s like '%forced failure%' and n = n2 then passed := passed + 1; else f := f || ' FAIL N4 ' || coalesce(st,'null'); end if;
+  if st = 'failed' and s like '%does not exist%' and n = n2 then passed := passed + 1; else f := f || ' FAIL N4 ' || coalesce(st,'null'); end if;
   select status into st from public.eos_contract_runs where id <> rid order by started_at desc limit 1;
   if st = 'ok' then passed := passed + 1; else f := f || ' FAIL runner ok-status ' || coalesce(st,'null'); end if;
 
