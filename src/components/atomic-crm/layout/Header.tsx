@@ -25,8 +25,10 @@ const Header = () => {
     currentPath = "/companies";
   } else if (matchPath("/deals/*", location.pathname)) {
     currentPath = "/deals";
+  } else if (matchPath("/eos_projects/*", location.pathname)) {
+    currentPath = "/eos_projects";
   } else if (/^\/eos/.test(location.pathname)) {
-    currentPath = "/eos";
+    currentPath = "/eos/team";
   } else {
     currentPath = false;
   }
@@ -61,18 +63,18 @@ const Header = () => {
                     isActive={currentPath === "/"}
                   />
                   <NavigationTab
-                    label={translate("resources.contacts.name", {
-                      smart_count: 2,
-                    })}
-                    to="/contacts"
-                    isActive={currentPath === "/contacts"}
-                  />
-                  <NavigationTab
                     label={translate("resources.companies.name", {
                       smart_count: 2,
                     })}
                     to="/companies"
                     isActive={currentPath === "/companies"}
+                  />
+                  <NavigationTab
+                    label={translate("resources.contacts.name", {
+                      smart_count: 2,
+                    })}
+                    to="/contacts"
+                    isActive={currentPath === "/contacts"}
                   />
                   <NavigationTab
                     label={translate("resources.deals.name", {
@@ -82,9 +84,14 @@ const Header = () => {
                     isActive={currentPath === "/deals"}
                   />
                   <NavigationTab
-                    label="EOS"
-                    to="/eos"
-                    isActive={currentPath === "/eos"}
+                    label="Projects"
+                    to="/eos_projects"
+                    isActive={currentPath === "/eos_projects"}
+                  />
+                  <NavigationTab
+                    label="Team EOS"
+                    to="/eos/team"
+                    isActive={currentPath === "/eos/team"}
                   />
                 </nav>
               </div>
