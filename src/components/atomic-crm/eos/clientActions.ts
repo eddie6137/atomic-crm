@@ -125,3 +125,35 @@ export const sectionCount = (shown: number, total?: number, cap = 50) =>
     : total == null && shown >= cap
       ? `first ${shown}`
       : String(shown);
+
+/** Time-of-day in America/Los_Angeles as ms since PT midnight. */
+const ptMsOfDay = (now: Date) => {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Los_Angeles",
+      hourCycle: "h23",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    })
+      .formatToParts(now)
+      .map((x) => [x.type, x.value]),
+  );
+  return (
+    ((+p.hour * 60 + +p.minute) * 60 + +p.second) * 1000 + now.getMilliseconds()
+  );
+};
+
+/** ms until the PT calendar date next changes (DST-safe), plus a 1s buffer. */
+export const msUntilNextPTMidnight = (now: Date = new Date()) => {
+  const today = todayPT(now);
+  let ms = 24 * 3600e3 - ptMsOfDay(now) + 1000;
+  // 23h/25h DST days: nudge until the PT date has actually changed.
+  while (todayPT(new Date(now.getTime() + ms)) === today) ms += 3600e3;
+  while (
+    ms > 3600e3 &&
+    todayPT(new Date(now.getTime() + ms - 3600e3)) !== today
+  )
+    ms -= 3600e3;
+  return ms;
+};

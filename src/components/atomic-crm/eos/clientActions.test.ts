@@ -6,6 +6,7 @@ import {
   normalizeCommitmentStatus,
   ptWeekRange,
   sectionCount,
+  msUntilNextPTMidnight,
 } from "./clientActions";
 
 // Instants given in UTC; expectations are PT calendar dates.
@@ -149,5 +150,30 @@ describe("Client Actions predicates", () => {
     expect(sectionCount(3, 3)).toBe("3");
     expect(sectionCount(50, 72)).toBe("first 50 of 72");
     expect(sectionCount(50, undefined)).toBe("first 50");
+  });
+  it("next PT midnight: crosses into the next PT date, DST-safe", () => {
+    const cases = [
+      "2026-11-09T07:30:00Z", // Sun 23:30 PST -> ~30 min
+      "2026-11-08T18:00:00Z", // Sun 10:00 PST
+      "2026-11-01T06:30:00Z", // Sat 23:30 PDT before fall-back
+      "2026-11-01T08:30:00Z", // Sun 01:30 PDT (25h day)
+      "2026-03-08T09:30:00Z", // Sun 01:30 PST (23h day)
+    ];
+    for (const iso of cases) {
+      const now = new Date(iso);
+      const ms = msUntilNextPTMidnight(now);
+      const today = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Los_Angeles",
+      }).format(now);
+      const at = (t: number) =>
+        new Intl.DateTimeFormat("en-CA", {
+          timeZone: "America/Los_Angeles",
+        }).format(new Date(t));
+      expect(at(now.getTime() + ms)).not.toBe(today);
+      expect(at(now.getTime() + ms - 2000)).toBe(today); // fires within ~1s after midnight
+    }
+    expect(msUntilNextPTMidnight(new Date("2026-11-09T07:30:00Z"))).toBe(
+      30 * 60e3 + 1000,
+    );
   });
 });

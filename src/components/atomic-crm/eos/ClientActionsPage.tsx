@@ -26,15 +26,18 @@ import {
   ptWeekRange,
   type ClientActionTab,
 } from "./clientActions";
-import { todayPT } from "./constants";
+import { usePTDate } from "./usePTDate";
 
-const tabHint = (tab: ClientActionTab) => {
+/** Noon PT-ish instant for a PT date string (safe for date math on any DST day). */
+const ptNoon = (d: string) => new Date(`${d}T20:00:00Z`);
+
+const tabHint = (tab: ClientActionTab, ptDate: string) => {
   if (tab === "week") {
-    const { start, end } = ptWeekRange();
+    const { start, end } = ptWeekRange(ptNoon(ptDate));
     return `Due Mon ${start} – Sun ${end} (Pacific).`;
   }
   if (tab === "overdue")
-    return `Due before ${todayPT()} (Pacific). No due date is not overdue.`;
+    return `Due before ${ptDate} (Pacific). No due date is not overdue.`;
   if (tab === "waiting") return "Direction = from client (the client owes us).";
   return "Open actions you own.";
 };
@@ -46,9 +49,16 @@ export const ClientActionsPage = () => {
   const tab: ClientActionTab = isClientActionTab(rawTab) ? rawTab : "mine";
   const companyId = params.get("company_id");
   const { identity, isPending: idPending } = useGetIdentity();
+  // PT date drives week/overdue bounds; recomputed at PT midnight and on focus.
+  const ptDate = usePTDate();
   const filter = useMemo(
-    () => clientActionFilter(tab, { identityId: identity?.id, companyId }),
-    [tab, identity?.id, companyId],
+    () =>
+      clientActionFilter(tab, {
+        identityId: identity?.id,
+        companyId,
+        now: ptNoon(ptDate),
+      }),
+    [tab, identity?.id, companyId, ptDate],
   );
   const setTab = (t: ClientActionTab) => {
     const p = new URLSearchParams(params);
@@ -87,8 +97,15 @@ export const ClientActionsPage = () => {
         ))}
       </div>
       <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-        <span>{tabHint(tab)}</span>
+        <span>{tabHint(tab, ptDate)}</span>
         {companyId && <CompanyChip id={companyId} onClear={clearCompany} />}
+        <Link
+          to="/tasks"
+          className="ml-auto underline min-h-11 inline-flex items-center"
+          data-testid="client-actions-tasks-link"
+        >
+          Legacy tasks
+        </Link>
       </div>
       {filter == null ? (
         <p
@@ -101,7 +118,7 @@ export const ClientActionsPage = () => {
         </p>
       ) : (
         <List
-          key={`${tab}:${companyId ?? ""}`}
+          key={`${tab}:${companyId ?? ""}:${ptDate}`}
           resource="eos_commitments"
           title="Client Actions"
           storeKey={`client-actions.${tab}`}

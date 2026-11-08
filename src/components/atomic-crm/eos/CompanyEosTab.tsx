@@ -21,11 +21,11 @@ export const CompanyEosTab = ({
 }: {
   companyId: number | string;
 }) => {
-  const { data: summary } = useGetOne(
-    "eos_account_summary",
-    { id: companyId },
-    { retry: false },
-  );
+  const {
+    data: summary,
+    isPending: sPending,
+    error: sError,
+  } = useGetOne("eos_account_summary", { id: companyId }, { retry: false });
   const a = summary ?? {
     id: companyId,
     open_projects: 0,
@@ -89,7 +89,12 @@ export const CompanyEosTab = ({
       className="flex flex-col gap-4 pt-2 min-w-0"
       data-testid="company-eos-tab"
     >
-      <AccountActionsRollup companyId={companyId} a={a} />
+      <AccountActionsRollup
+        companyId={companyId}
+        a={a}
+        isPending={sPending}
+        error={!!sError}
+      />
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
         <AccountSignals a={a} />
       </div>
@@ -155,21 +160,32 @@ export const CompanyActionsRollup = ({
 }: {
   companyId: number | string;
 }) => {
-  const { data } = useGetOne(
+  const { data, isPending, error } = useGetOne(
     "eos_account_summary",
     { id: companyId },
     { retry: false },
   );
-  return <AccountActionsRollup companyId={companyId} a={data ?? {}} />;
+  return (
+    <AccountActionsRollup
+      companyId={companyId}
+      a={data ?? {}}
+      isPending={isPending}
+      error={!!error}
+    />
+  );
 };
 
 /** Per-account Client Actions rollup. Counts come from eos_account_summary (authoritative); tabs drill into the hub. */
 const AccountActionsRollup = ({
   companyId,
   a,
+  isPending,
+  error,
 }: {
   companyId: number | string;
   a: any;
+  isPending?: boolean;
+  error?: boolean;
 }) => (
   <div
     className="rounded-lg border p-3 flex flex-col gap-2 min-w-0"
@@ -177,13 +193,30 @@ const AccountActionsRollup = ({
   >
     <div className="flex flex-wrap items-baseline justify-between gap-2">
       <h6 className="font-semibold">Client actions</h6>
-      <span className="text-sm text-muted-foreground">
-        <b className="text-foreground">{a.open_commitments ?? 0}</b> open ·{" "}
-        <b className={a.overdue_commitments ? "text-red-600" : ""}>
-          {a.overdue_commitments ?? 0}
-        </b>{" "}
-        overdue
-      </span>
+      {isPending ? (
+        <span
+          className="text-sm text-muted-foreground"
+          role="status"
+          data-testid="company-client-actions-loading"
+        >
+          Loading…
+        </span>
+      ) : error ? (
+        <span
+          className="text-sm text-red-600"
+          data-testid="company-client-actions-error"
+        >
+          Could not load counts
+        </span>
+      ) : (
+        <span className="text-sm text-muted-foreground">
+          <b className="text-foreground">{a.open_commitments ?? 0}</b> open ·{" "}
+          <b className={a.overdue_commitments ? "text-red-600" : ""}>
+            {a.overdue_commitments ?? 0}
+          </b>{" "}
+          overdue
+        </span>
+      )}
     </div>
     <div className="flex flex-wrap gap-2 text-sm">
       {CLIENT_ACTION_TABS.map((t) => (
@@ -193,7 +226,9 @@ const AccountActionsRollup = ({
           className="rounded-full border px-3 py-1 min-h-9 inline-flex items-center"
         >
           {t.label}
-          {t.id === "overdue" ? ` (${a.overdue_commitments ?? 0})` : ""}
+          {t.id === "overdue" && !isPending && !error
+            ? ` (${a.overdue_commitments ?? 0})`
+            : ""}
         </Link>
       ))}
     </div>
