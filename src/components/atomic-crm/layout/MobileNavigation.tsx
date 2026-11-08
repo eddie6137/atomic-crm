@@ -8,11 +8,16 @@ import {
 import { cn } from "@/lib/utils";
 import { Home, ListTodo, Plus, Settings, Target, Users } from "lucide-react";
 import { useTranslate } from "ra-core";
-import { Link, matchPath, useLocation, useMatch } from "react-router";
+import {
+  Link,
+  matchPath,
+  useLocation,
+  useMatch,
+  useNavigate,
+} from "react-router";
 import { ContactCreateSheet } from "../contacts/ContactCreateSheet";
 import { useState } from "react";
 import { NoteCreateSheet } from "../notes/NoteCreateSheet";
-import { TaskCreateSheet } from "../tasks/TaskCreateSheet";
 
 export const MobileNavigation = () => {
   const location = useLocation();
@@ -25,8 +30,11 @@ export const MobileNavigation = () => {
     currentPath = "/contacts";
   } else if (matchPath("/companies/*", location.pathname)) {
     currentPath = "/companies";
-  } else if (matchPath("/tasks/*", location.pathname)) {
-    currentPath = "/tasks";
+  } else if (
+    matchPath("/client-actions/*", location.pathname) ||
+    matchPath("/eos_commitments/*", location.pathname)
+  ) {
+    currentPath = "/client-actions";
   } else if (matchPath("/deals/*", location.pathname)) {
     currentPath = "/deals";
   } else if (/^\/eos/.test(location.pathname)) {
@@ -35,23 +43,14 @@ export const MobileNavigation = () => {
     currentPath = false;
   }
 
-  // Check if the app is running as a PWA (standalone mode)
-  const isPwa = window.matchMedia("(display-mode: standalone)").matches;
-  // Check if it's iOS on the web
-  const isWebiOS = /iPad|iPod|iPhone/.test(window.navigator.userAgent);
-
   return (
     <nav
       aria-label={translate("crm.navigation.label")}
       className="fixed bottom-0 left-0 right-0 z-50 bg-secondary h-14"
       style={{
-        // iOS bug: even though viewport is set correctly, the bottom safe area inset is not accounted for
-        // So we manually add some padding to avoid the navigation being too close to the home bar
-        paddingBottom: isPwa && isWebiOS ? 15 : undefined,
-        // We use box-sizing: border-box, so the height contains the padding.
-        // To actually increase the padding, we need to increase the height as well
-        height:
-          "calc(var(--spacing)) * 6" + (isPwa && isWebiOS ? " + 15px" : ""),
+        // Safe-area inset (needs viewport-fit=cover) replaces the old iOS-PWA-only 15px hack.
+        paddingBottom: "env(safe-area-inset-bottom)",
+        height: "calc(3.5rem + env(safe-area-inset-bottom))",
       }}
     >
       <div className="flex justify-center">
@@ -72,10 +71,10 @@ export const MobileNavigation = () => {
           />
           <CreateButton />
           <NavigationButton
-            href="/tasks"
+            href="/client-actions"
             Icon={ListTodo}
-            label={translate("resources.tasks.name", { smart_count: 2 })}
-            isActive={currentPath === "/tasks"}
+            label="Actions"
+            isActive={currentPath === "/client-actions"}
           />
           <NavigationButton
             href="/eos"
@@ -119,7 +118,8 @@ const CreateButton = () => {
   const contact_id = useMatch("/contacts/:id/*")?.params.id;
   const [contactCreateOpen, setContactCreateOpen] = useState(false);
   const [noteCreateOpen, setNoteCreateOpen] = useState(false);
-  const [taskCreateOpen, setTaskCreateOpen] = useState(false);
+  const navigate = useNavigate();
+  const company_id = useMatch("/companies/:id/*")?.params.id;
 
   return (
     <>
@@ -130,11 +130,6 @@ const CreateButton = () => {
       <NoteCreateSheet
         open={noteCreateOpen}
         onOpenChange={setNoteCreateOpen}
-        contact_id={contact_id}
-      />
-      <TaskCreateSheet
-        open={taskCreateOpen}
-        onOpenChange={setTaskCreateOpen}
         contact_id={contact_id}
       />
       <DropdownMenu>
@@ -169,11 +164,16 @@ const CreateButton = () => {
           </DropdownMenuItem>
           <DropdownMenuItem
             className="h-12 px-4 text-base"
+            data-testid="mobile-create-client-action"
             onClick={() => {
-              setTaskCreateOpen(true);
+              navigate(
+                company_id
+                  ? `/eos_commitments/create?source=${encodeURIComponent(JSON.stringify({ company_id: Number(company_id) || company_id }))}`
+                  : "/eos_commitments/create",
+              );
             }}
           >
-            {translate("resources.tasks.forcedCaseName")}
+            Client action
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

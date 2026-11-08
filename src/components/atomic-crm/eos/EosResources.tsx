@@ -10,7 +10,7 @@ import { ExportButton } from "@/components/admin/export-button";
 import { List } from "@/components/admin/list";
 import { ReferenceField } from "@/components/admin/reference-field";
 import { SelectInput } from "@/components/admin/select-input";
-import { SimpleForm } from "@/components/admin/simple-form";
+import { FormToolbar, SimpleForm } from "@/components/admin/simple-form";
 import { TextInput } from "@/components/admin/text-input";
 import { Button } from "@/components/ui/button";
 
@@ -37,6 +37,7 @@ import {
   SavedViews,
 } from "./EosShared";
 import { EosNav } from "./EosNav";
+import { normalizeCommitment } from "./clientActions";
 import { EosListBody } from "./EosListBody";
 import { ParentProjectInput, ProjectChildren } from "./EosMilestones";
 import { EosBulkToolbar } from "./EosBulkActions";
@@ -183,8 +184,13 @@ export const ProjectEdit = () => (
 );
 
 // ---------------- Commitments ----------------
+// Mobile: lift the sticky Save toolbar above the fixed bottom nav + home-indicator inset.
 const CommitmentForm = () => (
-  <SimpleForm>
+  <SimpleForm
+    toolbar={
+      <FormToolbar className="bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 z-10" />
+    }
+  >
     <div className="grid gap-4 md:grid-cols-2 w-full">
       <TextInput source="title" validate={required} />
       <CompanyInput required />
@@ -250,7 +256,11 @@ export const CommitmentList = () => (
   </div>
 );
 export const CommitmentCreate = () => (
-  <Create resource="eos_commitments" redirect="edit">
+  <Create
+    resource="eos_commitments"
+    redirect="edit"
+    transform={normalizeCommitment}
+  >
     <CommitmentForm />
   </Create>
 );
@@ -258,6 +268,7 @@ export const CommitmentEdit = () => (
   <Edit
     resource="eos_commitments"
     mutationMode="pessimistic"
+    transform={normalizeCommitment}
     actions={
       <TopToolbar>
         <ArchiveButton resource="eos_commitments" />

@@ -35,13 +35,22 @@ export const EosListBody = ({
   const resource = useResourceContext();
   const createPath = useCreatePath();
   if (!isMobile) return <>{children}</>;
-  if (isPending) return null;
+  if (isPending)
+    return (
+      <p
+        className="text-sm text-muted-foreground p-2"
+        role="status"
+        data-testid="eos-cards-loading"
+      >
+        Loading…
+      </p>
+    );
   if (!data?.length)
     return <p className="text-sm text-muted-foreground p-2">No results</p>;
   const selected = new Set(selectedIds ?? []);
   return (
     <div
-      className="flex flex-col gap-2 w-full min-w-0 pb-40"
+      className="flex flex-col gap-2 w-full min-w-0 pb-[calc(10rem+env(safe-area-inset-bottom))]"
       data-testid="eos-cards"
     >
       {bulkFields && (
@@ -85,38 +94,71 @@ export const EosListBody = ({
               </span>
             </label>
           ) : (
-            <Link
-              to={createPath({ resource: resource!, id: r.id, type: "edit" })}
-              className="block rounded-lg border p-3 no-underline text-foreground min-w-0"
-            >
-              <div className="font-medium break-words">{r.title ?? r.name}</div>
-              <div className="text-sm text-muted-foreground break-words">
-                {r.company_id ? (
-                  <ReferenceField
-                    source="company_id"
-                    reference="companies"
-                    link={false}
-                  />
-                ) : (
-                  "No account"
-                )}
-              </div>
-              <div className="flex flex-wrap gap-1 mt-2 items-center text-xs">
-                {r.status && (
-                  <Badge variant="outline">
-                    {String(r.status).replace(/_/g, " ")}
-                  </Badge>
-                )}
-                {r.priority && <Badge variant="secondary">{r.priority}</Badge>}
-                {r.quarter && <Badge variant="secondary">{r.quarter}</Badge>}
-                {r.needs_review && (
-                  <Badge variant="destructive">needs review</Badge>
-                )}
-                {dateSource && r[dateSource] !== undefined && <DueField />}
-                {extra?.(r)}
-                <LinksField />
-              </div>
-            </Link>
+            // Card = sibling Link + links row, so external link anchors are never nested in the card link.
+            <div className="rounded-lg border min-w-0" data-testid="eos-card">
+              <Link
+                to={createPath({ resource: resource!, id: r.id, type: "edit" })}
+                className="block p-3 pb-2 no-underline text-foreground min-w-0"
+              >
+                <div className="font-medium break-words">
+                  {r.title ?? r.name}
+                </div>
+                <div className="text-sm text-muted-foreground break-words">
+                  {r.company_id ? (
+                    <ReferenceField
+                      source="company_id"
+                      reference="companies"
+                      link={false}
+                    />
+                  ) : (
+                    "No account"
+                  )}
+                  {"owner_sales_id" in r && (
+                    <span data-testid="eos-card-owner">
+                      {" · "}
+                      {r.owner_sales_id ? (
+                        <ReferenceField
+                          source="owner_sales_id"
+                          reference="sales"
+                          link={false}
+                          render={({ referenceRecord }) =>
+                            referenceRecord
+                              ? `${referenceRecord.first_name} ${referenceRecord.last_name}`
+                              : "—"
+                          }
+                        />
+                      ) : (
+                        "No owner"
+                      )}
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1 mt-2 items-center text-xs">
+                  {r.status && (
+                    <Badge variant="outline">
+                      {String(r.status).replace(/_/g, " ")}
+                    </Badge>
+                  )}
+                  {r.priority && (
+                    <Badge variant="secondary">{r.priority}</Badge>
+                  )}
+                  {r.quarter && <Badge variant="secondary">{r.quarter}</Badge>}
+                  {r.direction === "from_client" && (
+                    <Badge variant="secondary">waiting on client</Badge>
+                  )}
+                  {r.needs_review && (
+                    <Badge variant="destructive">needs review</Badge>
+                  )}
+                  {dateSource && r[dateSource] !== undefined && <DueField />}
+                  {extra?.(r)}
+                </div>
+              </Link>
+              {(r.links?.length || r.attachments?.length) > 0 && (
+                <div className="px-3 pb-3 text-xs">
+                  <LinksField />
+                </div>
+              )}
+            </div>
           )}
         </RecordContextProvider>
       ))}
