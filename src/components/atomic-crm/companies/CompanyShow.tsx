@@ -1,4 +1,4 @@
-import { CompanyEosTab } from "../eos/CompanyEosTab";
+import { CompanyActionsRollup, CompanyEosTab } from "../eos/CompanyEosTab";
 import { RelationshipBadge } from "./CompanyRelationship";
 import { ReferenceManyField } from "@/components/admin/reference-many-field";
 import { SortButton } from "@/components/admin/sort-button";
@@ -85,6 +85,9 @@ const CompanyShowContentMobile = () => {
               <h2 className="text-2xl font-bold">{record.name}</h2>
             </div>
           </div>
+        </div>
+        <div className="mb-6">
+          <CompanyActionsRollup companyId={record.id} />
         </div>
         <CompanyInfo record={record} />
         <AddressInfo record={record} />

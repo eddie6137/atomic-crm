@@ -117,3 +117,11 @@ export const clientActionsLink = (
   if (companyId != null) p.set("company_id", String(companyId));
   return `${CLIENT_ACTIONS_PATH}?${p.toString()}`;
 };
+
+/** Honest count label: never present a capped page as the full total. */
+export const sectionCount = (shown: number, total?: number, cap = 50) =>
+  total != null && total > shown
+    ? `first ${shown} of ${total}`
+    : total == null && shown >= cap
+      ? `first ${shown}`
+      : String(shown);

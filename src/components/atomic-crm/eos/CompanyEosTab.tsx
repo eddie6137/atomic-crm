@@ -6,6 +6,7 @@ import {
   activeActionFilter,
   CLIENT_ACTION_TABS,
   clientActionsLink,
+  sectionCount,
 } from "./clientActions";
 import {
   COMMITMENT_OPEN,
@@ -96,7 +97,7 @@ export const CompanyEosTab = ({
         <div key={s.resource} className="min-w-0">
           <div className="flex justify-between items-center">
             <h6 className="font-semibold">
-              {s.label} ({sectionCount(s.rows.length, s.total)})
+              {s.label} ({sectionCount(s.rows.length, s.total, SECTION_CAP)})
             </h6>
             <Link
               to={`/${s.resource}/create?source=${encodeURIComponent(JSON.stringify({ company_id: companyId }))}`}
@@ -147,13 +148,20 @@ export const CompanyEosTab = ({
 };
 
 const SECTION_CAP = 50;
-/** Honest count label: never present a capped page as the full total. */
-export const sectionCount = (shown: number, total?: number) =>
-  total != null && total > shown
-    ? `first ${shown} of ${total}`
-    : total == null && shown >= SECTION_CAP
-      ? `first ${shown}`
-      : String(shown);
+
+/** Standalone rollup (mobile company page): same eos_account_summary getOne, shared query cache. */
+export const CompanyActionsRollup = ({
+  companyId,
+}: {
+  companyId: number | string;
+}) => {
+  const { data } = useGetOne(
+    "eos_account_summary",
+    { id: companyId },
+    { retry: false },
+  );
+  return <AccountActionsRollup companyId={companyId} a={data ?? {}} />;
+};
 
 /** Per-account Client Actions rollup. Counts come from eos_account_summary (authoritative); tabs drill into the hub. */
 const AccountActionsRollup = ({

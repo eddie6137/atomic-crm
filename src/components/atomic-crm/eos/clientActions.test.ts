@@ -5,6 +5,7 @@ import {
   normalizeCommitment,
   normalizeCommitmentStatus,
   ptWeekRange,
+  sectionCount,
 } from "./clientActions";
 
 // Instants given in UTC; expectations are PT calendar dates.
@@ -143,5 +144,10 @@ describe("Client Actions predicates", () => {
       status: "completed",
     });
     expect(normalizeCommitment({ title: "x" })).toEqual({ title: "x" });
+  });
+  it("capped section labels are honest", () => {
+    expect(sectionCount(3, 3)).toBe("3");
+    expect(sectionCount(50, 72)).toBe("first 50 of 72");
+    expect(sectionCount(50, undefined)).toBe("first 50");
   });
 });
