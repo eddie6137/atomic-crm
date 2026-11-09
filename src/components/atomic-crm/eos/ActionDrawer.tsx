@@ -20,6 +20,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { FormDrawer } from "../misc/FormDrawer";
 import { ActionActivity } from "./ActionActivity";
+import { ActionComments } from "./ActionComments";
 import {
   accountEditable,
   inlinePatch,
@@ -242,6 +243,15 @@ const ActionDetail = ({
               </div>
             </ReadOnly>
           )}
+          <section
+            aria-labelledby="action-comments-h"
+            className="flex flex-col gap-2"
+          >
+            <h3 id="action-comments-h" className="text-sm font-medium">
+              Comments
+            </h3>
+            <ActionComments commitmentId={String(record.id)} />
+          </section>
           <section
             aria-labelledby="action-activity-h"
             className="flex flex-col gap-2"
