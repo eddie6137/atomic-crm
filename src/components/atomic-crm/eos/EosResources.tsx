@@ -44,7 +44,7 @@ import {
   SavedViews,
 } from "./EosShared";
 import { EosNav } from "./EosNav";
-import { CLIENT_ACTIONS_PATH, normalizeCommitment } from "./clientActions";
+import { commitmentCreatedPath, normalizeCommitment } from "./clientActions";
 import { EosListBody } from "./EosListBody";
 import { ParentProjectInput, ProjectChildren } from "./EosMilestones";
 import { EosBulkToolbar } from "./EosBulkActions";
@@ -267,9 +267,6 @@ export const CommitmentList = () => (
  * empty form, so a saved action looked unsaved. Now: success toast + land on Client
  * Actions "All open" (newest first) with the new row highlighted. Owner defaults to me.
  */
-export const commitmentCreatedPath = (id: unknown) =>
-  `${CLIENT_ACTIONS_PATH}?${new URLSearchParams({ tab: "all", highlight: String(id) })}`;
-
 export const CommitmentCreate = () => {
   const notify = useNotify();
   const navigate = useNavigate();

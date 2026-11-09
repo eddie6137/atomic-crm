@@ -194,3 +194,7 @@ export const msUntilNextPTMidnight = (now: Date = new Date()) => {
     ms -= 3600e3;
   return ms;
 };
+
+/** Where create/edit land: Client Actions "All open" with the saved row highlighted (UAT 2026-11-08). */
+export const commitmentCreatedPath = (id: unknown) =>
+  `${CLIENT_ACTIONS_PATH}?${new URLSearchParams({ tab: "all", highlight: String(id) })}`;

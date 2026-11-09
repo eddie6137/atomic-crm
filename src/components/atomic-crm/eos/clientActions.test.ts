@@ -10,8 +10,8 @@ import {
   CLIENT_ACTION_TABS,
   DEFAULT_CLIENT_ACTION_TAB,
   clientActionsLink,
+  commitmentCreatedPath,
 } from "./clientActions";
-import { commitmentCreatedPath } from "./EosResources";
 
 // Instants given in UTC; expectations are PT calendar dates.
 const at = (iso: string) => new Date(iso);

@@ -6,7 +6,7 @@ import { render } from "vitest-browser-react";
 import { testI18nProvider } from "@/components/atomic-crm/providers/commons/i18nProvider";
 
 import { DateInput } from "./date-input";
-import { monthGrid, parseYmd, toYmd } from "./date-picker-calendar";
+import { monthGrid, parseYmd, toYmd } from "./date-picker-utils";
 
 const DueValue = () => {
   const v = useWatch({ name: "due_date" });
