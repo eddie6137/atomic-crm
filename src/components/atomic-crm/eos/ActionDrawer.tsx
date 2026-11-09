@@ -37,7 +37,7 @@ import { QuickDirection } from "./QuickDirection";
 const RESOURCE = "eos_commitments";
 const human = (v: string) => v.replace(/_/g, " ");
 const selectClass =
-  "min-h-11 md:min-h-9 w-full rounded-md border bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-60";
+  "min-h-11 md:min-h-9 w-full rounded-md border bg-background text-foreground scheme-light dark:scheme-dark px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-60";
 
 export type ActionDrawerProps = {
   /** `item` from the URL; null = closed. */
