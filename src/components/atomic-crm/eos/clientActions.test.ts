@@ -11,6 +11,8 @@ import {
   DEFAULT_CLIENT_ACTION_TAB,
   clientActionsLink,
   commitmentCreatedPath,
+  commitmentEditedPath,
+  clientActionsStoreKey,
 } from "./clientActions";
 
 // Instants given in UTC; expectations are PT calendar dates.
@@ -217,5 +219,27 @@ describe("UAT 2026-11-08: a newly created action is always visible", () => {
       "/client-actions?tab=all&highlight=abc-1",
     );
     expect(clientActionsLink("all")).toBe("/client-actions?tab=all");
+  });
+});
+
+describe("UAT 2026-11-08 review fixes", () => {
+  it("bypasses the stored list params while a row is highlighted", () => {
+    expect(clientActionsStoreKey("all", "abc-1")).toBe(false);
+    expect(clientActionsStoreKey("all", null)).toBe("client-actions.all");
+    expect(clientActionsStoreKey("week")).toBe("client-actions.week");
+  });
+  it("edit lands on All open with highlight only while the action is still open", () => {
+    expect(commitmentEditedPath("a1", { status: "open" })).toBe(
+      "/client-actions?tab=all&highlight=a1",
+    );
+    expect(commitmentEditedPath("a1", { status: "done" })).toBe(
+      "/client-actions",
+    );
+    expect(
+      commitmentEditedPath("a1", { status: "open", archived_at: "2026-11-08" }),
+    ).toBe("/client-actions");
+    expect(commitmentEditedPath("a1")).toBe(
+      "/client-actions?tab=all&highlight=a1",
+    );
   });
 });

@@ -23,6 +23,8 @@ import {
   CLIENT_ACTIONS_PATH,
   clientActionFilter,
   clientActionsLink,
+  clientActionsStoreKey,
+  HIGHLIGHT_CLASS,
   isClientActionTab,
   ptWeekRange,
   type ClientActionTab,
@@ -143,10 +145,12 @@ export const ClientActionsPage = () => {
         </p>
       ) : (
         <List
-          key={`${tab}:${companyId ?? ""}:${ptDate}:${unclassified ? "u" : ""}`}
+          key={`${tab}:${companyId ?? ""}:${ptDate}:${unclassified ? "u" : ""}:${newId ?? ""}`}
           resource="eos_commitments"
           title="Client Actions"
-          storeKey={`client-actions.${tab}`}
+          // With ?highlight=, ignore this tab's stored filter/sort/page (they beat the sort
+          // prop in ra-core) so the just-saved row is never hidden (CE review 2026-11-08).
+          storeKey={clientActionsStoreKey(tab, newId)}
           disableSyncWithLocation
           filter={filter}
           filters={[
@@ -200,6 +204,7 @@ export const ClientActionsPage = () => {
           }
         >
           <EosListBody
+            highlightId={newId}
             bulkFields={COMMITMENT_BULK}
             cardActions={() => (
               <>
@@ -212,7 +217,7 @@ export const ClientActionsPage = () => {
               rowClick="edit"
               rowClassName={(r) =>
                 newId != null && String(r.id) === newId
-                  ? "bg-primary/10 font-medium"
+                  ? `bg-primary/10 font-medium ${HIGHLIGHT_CLASS}`
                   : undefined
               }
               bulkActionsToolbar={<EosBulkToolbar fields={COMMITMENT_BULK} />}

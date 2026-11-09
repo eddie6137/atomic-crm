@@ -13,3 +13,10 @@ export const monthGrid = (month: Date) => {
   const start = startOfWeek(startOfMonth(month), { weekStartsOn: 0 });
   return Array.from({ length: 42 }, (_, i) => addDays(start, i));
 };
+
+/**
+ * Mouse/trackpad clicks open the in-app calendar; touch/pen keep the OS picker.
+ * Decided per event (pointerType), so iPads with a trackpad and touch laptops behave per input.
+ */
+export const opensCalendarOnClick = (pointerType: string | null | undefined) =>
+  pointerType === "mouse";

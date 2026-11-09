@@ -44,7 +44,11 @@ import {
   SavedViews,
 } from "./EosShared";
 import { EosNav } from "./EosNav";
-import { commitmentCreatedPath, normalizeCommitment } from "./clientActions";
+import {
+  commitmentCreatedPath,
+  commitmentEditedPath,
+  normalizeCommitment,
+} from "./clientActions";
 import { EosListBody } from "./EosListBody";
 import { ParentProjectInput, ProjectChildren } from "./EosMilestones";
 import { EosBulkToolbar } from "./EosBulkActions";
@@ -297,8 +301,10 @@ export const CommitmentEdit = () => (
   <Edit
     resource="eos_commitments"
     mutationMode="pessimistic"
-    // After an edit, land back on Client Actions with the row highlighted.
-    redirect={(_r?: string, id?: unknown) => commitmentCreatedPath(id)}
+    // After an edit, land back on Client Actions with the row highlighted (if still open).
+    redirect={(_r?: string, id?: unknown, data?: Record<string, any>) =>
+      commitmentEditedPath(id, data)
+    }
     transform={normalizeCommitment}
     actions={
       <TopToolbar>

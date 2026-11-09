@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   RecordContextProvider,
   useCreatePath,
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DueField, LinksField } from "./EosShared";
 import { EosBulkToolbar, type BulkField } from "./EosBulkActions";
+import { HIGHLIGHT_CLASS } from "./clientActions";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -23,8 +24,11 @@ export const EosListBody = ({
   extra,
   bulkFields,
   cardActions,
+  highlightId,
 }: {
   children: ReactNode;
+  /** Record id to highlight and scroll into view (cards and table rows). */
+  highlightId?: string | null;
   /** Controls rendered under a card, outside its link (e.g. quick-classify). */
   cardActions?: (r: any) => ReactNode;
   bulkFields?: BulkField[];
@@ -37,6 +41,15 @@ export const EosListBody = ({
   const [selecting, setSelecting] = useState(false);
   const resource = useResourceContext();
   const createPath = useCreatePath();
+  useEffect(() => {
+    if (!highlightId || isPending) return;
+    const t = setTimeout(() => {
+      document
+        .querySelector(`.${HIGHLIGHT_CLASS}`)
+        ?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+    }, 150);
+    return () => clearTimeout(t);
+  }, [highlightId, isPending, data]);
   if (!isMobile) return <>{children}</>;
   if (isPending)
     return (
@@ -98,7 +111,15 @@ export const EosListBody = ({
             </label>
           ) : (
             // Card = sibling Link + links row, so external link anchors are never nested in the card link.
-            <div className="rounded-lg border min-w-0" data-testid="eos-card">
+            <div
+              className={`rounded-lg border min-w-0 ${highlightId != null && String(r.id) === highlightId ? `border-primary bg-primary/10 ring-1 ring-primary ${HIGHLIGHT_CLASS}` : ""}`}
+              data-testid="eos-card"
+              data-highlighted={
+                highlightId != null && String(r.id) === highlightId
+                  ? "true"
+                  : undefined
+              }
+            >
               <Link
                 to={createPath({ resource: resource!, id: r.id, type: "edit" })}
                 className="block p-3 pb-2 no-underline text-foreground min-w-0"

@@ -198,3 +198,24 @@ export const msUntilNextPTMidnight = (now: Date = new Date()) => {
 /** Where create/edit land: Client Actions "All open" with the saved row highlighted (UAT 2026-11-08). */
 export const commitmentCreatedPath = (id: unknown) =>
   `${CLIENT_ACTIONS_PATH}?${new URLSearchParams({ tab: "all", highlight: String(id) })}`;
+
+/** Class put on the highlighted Client Actions row or card; used to scroll it into view. */
+export const HIGHLIGHT_CLASS = "eos-highlight";
+
+/** List storeKey for a Client Actions tab; false (no stored params) while highlighting a row. */
+export const clientActionsStoreKey = (
+  tab: string,
+  highlightId?: string | null,
+) => (highlightId ? (false as const) : `client-actions.${tab}`);
+
+/**
+ * Where an edit lands: back on All open with the row highlighted while it is still open;
+ * once done or archived it no longer appears there, so land on the default view instead.
+ */
+export const commitmentEditedPath = (
+  id: unknown,
+  data?: Record<string, any>,
+) =>
+  data && (data.archived_at || !COMMITMENT_OPEN.includes(data.status))
+    ? CLIENT_ACTIONS_PATH
+    : commitmentCreatedPath(id);

@@ -1,12 +1,18 @@
 import { CoreAdminContext, Form } from "ra-core";
 import { useWatch } from "react-hook-form";
 import { describe, expect, it } from "vitest";
+import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
 
 import { testI18nProvider } from "@/components/atomic-crm/providers/commons/i18nProvider";
 
 import { DateInput } from "./date-input";
-import { monthGrid, parseYmd, toYmd } from "./date-picker-utils";
+import {
+  monthGrid,
+  opensCalendarOnClick,
+  parseYmd,
+  toYmd,
+} from "./date-picker-utils";
 
 const DueValue = () => {
   const v = useWatch({ name: "due_date" });
@@ -36,6 +42,15 @@ describe("date-picker-calendar helpers", () => {
     expect(g).toHaveLength(42);
     expect(toYmd(g[0])).toBe("2026-11-01"); // Nov 1 2026 is a Sunday
     expect(g[0].getDay()).toBe(0);
+  });
+});
+
+describe("opensCalendarOnClick", () => {
+  it("opens the in-app calendar only for mouse clicks, per event", () => {
+    expect(opensCalendarOnClick("mouse")).toBe(true);
+    expect(opensCalendarOnClick("touch")).toBe(false);
+    expect(opensCalendarOnClick("pen")).toBe(false);
+    expect(opensCalendarOnClick(null)).toBe(false);
   });
 });
 
@@ -72,7 +87,10 @@ describe("<DateInput> calendar popover", () => {
   });
   it("clicking the field itself opens the calendar on a mouse device", async () => {
     const screen = await renderInput({});
-    (document.querySelector("input[type=date]") as HTMLInputElement).click();
+    // Real mouse click (pointerdown pointerType "mouse"), as a desktop user would.
+    await page
+      .elementLocator(document.querySelector("input[type=date]")!)
+      .click();
     await expect
       .element(screen.getByTestId("date-picker-calendar"))
       .toBeVisible();

@@ -18,12 +18,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { DatePickerCalendar } from "./date-picker-calendar";
-
-/** Mouse/trackpad devices open the in-app calendar on click; touch keeps the OS picker. */
-const hasFinePointer = () =>
-  typeof window !== "undefined" &&
-  typeof window.matchMedia === "function" &&
-  window.matchMedia("(pointer: fine)").matches;
+import { opensCalendarOnClick } from "./date-picker-utils";
 
 /**
  * Date picker input for editing date values in "YYYY-MM-DD" format.
@@ -109,7 +104,13 @@ export const DateInput = (props: DateInputProps) => {
     ...rest,
   });
   const localInputRef = React.useRef<HTMLInputElement>(null);
+  const lastPointerType = React.useRef<string | null>(null);
   const [open, setOpen] = React.useState(false);
+  const {
+    onClick: callerOnClick,
+    onPointerDown: callerOnPointerDown,
+    ...inputRest
+  } = rest as React.InputHTMLAttributes<HTMLInputElement>;
   // DateInput is not a really controlled input to ensure users can start entering a date, go to another input and come back to complete it.
   // This ref stores the value that is passed to the input defaultValue prop to solve this issue.
   const initialDefaultValueRef = React.useRef(field.value);
@@ -242,9 +243,18 @@ export const DateInput = (props: DateInputProps) => {
             onChange={handleChange}
             onFocus={handleFocus}
             onBlur={handleBlur}
+            onPointerDown={(e) => {
+              callerOnPointerDown?.(e);
+              lastPointerType.current = e.pointerType;
+            }}
             onClick={(e) => {
-              rest.onClick?.(e);
-              if (!disabled && !readOnly && hasFinePointer()) setOpen(true);
+              callerOnClick?.(e);
+              if (
+                !disabled &&
+                !readOnly &&
+                opensCalendarOnClick(lastPointerType.current)
+              )
+                setOpen(true);
             }}
             className={cn(
               "ra-input",
@@ -254,7 +264,7 @@ export const DateInput = (props: DateInputProps) => {
             )}
             disabled={disabled || readOnly}
             readOnly={readOnly}
-            {...rest}
+            {...inputRest}
           />
         </FormControl>
         <Popover open={open} onOpenChange={setOpen}>
