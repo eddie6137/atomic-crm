@@ -1,4 +1,11 @@
-import { useRecordContext, useUpdate, useNotify, useRedirect } from "ra-core";
+import {
+  useGetIdentity,
+  useNotify,
+  useRecordContext,
+  useRedirect,
+  useUpdate,
+} from "ra-core";
+import { useNavigate } from "react-router";
 import { Archive } from "lucide-react";
 import { BooleanInput } from "@/components/admin/boolean-input";
 import { Create } from "@/components/admin/create";
@@ -37,7 +44,7 @@ import {
   SavedViews,
 } from "./EosShared";
 import { EosNav } from "./EosNav";
-import { normalizeCommitment } from "./clientActions";
+import { CLIENT_ACTIONS_PATH, normalizeCommitment } from "./clientActions";
 import { EosListBody } from "./EosListBody";
 import { ParentProjectInput, ProjectChildren } from "./EosMilestones";
 import { EosBulkToolbar } from "./EosBulkActions";
@@ -165,7 +172,7 @@ export const ProjectList = () => (
   </div>
 );
 export const ProjectCreate = () => (
-  <Create resource="eos_projects" redirect="edit">
+  <Create resource="eos_projects" redirect="list" title="New project">
     <ProjectForm />
   </Create>
 );
@@ -255,15 +262,40 @@ export const CommitmentList = () => (
     </List>
   </div>
 );
-export const CommitmentCreate = () => (
-  <Create
-    resource="eos_commitments"
-    redirect="edit"
-    transform={normalizeCommitment}
-  >
-    <CommitmentForm />
-  </Create>
-);
+/**
+ * UAT 2026-11-08: create used to redirect to an edit page that looks identical to the
+ * empty form, so a saved action looked unsaved. Now: success toast + land on Client
+ * Actions "All open" (newest first) with the new row highlighted. Owner defaults to me.
+ */
+export const commitmentCreatedPath = (id: unknown) =>
+  `${CLIENT_ACTIONS_PATH}?${new URLSearchParams({ tab: "all", new: String(id) })}`;
+
+export const CommitmentCreate = () => {
+  const notify = useNotify();
+  const navigate = useNavigate();
+  const { identity, isPending } = useGetIdentity();
+  if (isPending) return null;
+  return (
+    <Create
+      resource="eos_commitments"
+      title="New client action"
+      transform={normalizeCommitment}
+      record={
+        identity?.id != null ? { owner_sales_id: identity.id } : undefined
+      }
+      mutationOptions={{
+        onSuccess: (data: any) => {
+          notify("Action saved. It is listed under Client Actions, All open.", {
+            type: "success",
+          });
+          navigate(commitmentCreatedPath(data?.id));
+        },
+      }}
+    >
+      <CommitmentForm />
+    </Create>
+  );
+};
 export const CommitmentEdit = () => (
   <Edit
     resource="eos_commitments"
@@ -345,7 +377,7 @@ export const IssueList = () => (
   </div>
 );
 export const IssueCreate = () => (
-  <Create resource="eos_issues" redirect="edit">
+  <Create resource="eos_issues" redirect="list" title="New issue">
     <IssueForm />
   </Create>
 );

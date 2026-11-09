@@ -7,7 +7,11 @@ import {
   ptWeekRange,
   sectionCount,
   msUntilNextPTMidnight,
+  CLIENT_ACTION_TABS,
+  DEFAULT_CLIENT_ACTION_TAB,
+  clientActionsLink,
 } from "./clientActions";
+import { commitmentCreatedPath } from "./EosResources";
 
 // Instants given in UTC; expectations are PT calendar dates.
 const at = (iso: string) => new Date(iso);
@@ -175,5 +179,43 @@ describe("Client Actions predicates", () => {
     expect(msUntilNextPTMidnight(new Date("2026-11-09T07:30:00Z"))).toBe(
       30 * 60e3 + 1000,
     );
+  });
+});
+
+describe("UAT 2026-11-08: a newly created action is always visible", () => {
+  it("All open is the first and default tab", () => {
+    expect(CLIENT_ACTION_TABS[0]).toEqual({ id: "all", label: "All open" });
+    expect(DEFAULT_CLIENT_ACTION_TAB).toBe("all");
+  });
+  it("All open = active filter only (any owner, any direction, no due date needed)", () => {
+    expect(clientActionFilter("all", { identityId: 5 })).toEqual({
+      "archived_at@is": null,
+      "status@in": expect.any(String),
+    });
+    expect(clientActionFilter("all", { companyId: 8 })?.company_id).toBe(8);
+  });
+  it("matches Eddie's UAT row shape (other owner, from_client, no due date)", () => {
+    const row = {
+      status: "open",
+      archived_at: null,
+      due_date: null,
+      owner_sales_id: 6,
+      direction: "from_client",
+    };
+    expect(matchesClientActionTab(row, "all", { identityId: 5 })).toBe(true);
+    expect(matchesClientActionTab(row, "mine", { identityId: 5 })).toBe(false);
+    expect(matchesClientActionTab(row, "week", { identityId: 5 })).toBe(false);
+    expect(matchesClientActionTab({ ...row, status: "completed" }, "all")).toBe(
+      false,
+    );
+    expect(
+      matchesClientActionTab({ ...row, archived_at: "2026-11-08" }, "all"),
+    ).toBe(false);
+  });
+  it("create lands on All open with the new row id", () => {
+    expect(commitmentCreatedPath("abc-1")).toBe(
+      "/client-actions?tab=all&new=abc-1",
+    );
+    expect(clientActionsLink("all")).toBe("/client-actions?tab=all");
   });
 });

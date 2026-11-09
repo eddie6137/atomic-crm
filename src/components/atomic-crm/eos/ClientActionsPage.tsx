@@ -19,6 +19,7 @@ import { COMMITMENT_BULK } from "./bulkFields";
 import {
   activeActionFilter,
   CLIENT_ACTION_TABS,
+  DEFAULT_CLIENT_ACTION_TAB,
   CLIENT_ACTIONS_PATH,
   clientActionFilter,
   clientActionsLink,
@@ -40,6 +41,7 @@ const tabHint = (tab: ClientActionTab, ptDate: string) => {
   if (tab === "overdue")
     return `Due before ${ptDate} (Pacific). No due date is not overdue.`;
   if (tab === "waiting") return "Direction = from client (the client owes us).";
+  if (tab === "all") return "Every open action, any owner, newest first.";
   return "Open actions you own.";
 };
 
@@ -47,8 +49,12 @@ const tabHint = (tab: ClientActionTab, ptDate: string) => {
 export const ClientActionsPage = () => {
   const [params, setParams] = useSearchParams();
   const rawTab = params.get("tab");
-  const tab: ClientActionTab = isClientActionTab(rawTab) ? rawTab : "mine";
+  const tab: ClientActionTab = isClientActionTab(rawTab)
+    ? rawTab
+    : DEFAULT_CLIENT_ACTION_TAB;
   const companyId = params.get("company_id");
+  // Set by the create redirect so the just-saved row is highlighted.
+  const newId = params.get("new");
   const unclassified = params.get("unclassified") === "1" && tab !== "waiting";
   const { identity, isPending: idPending } = useGetIdentity();
   // PT date drives week/overdue bounds; recomputed at PT midnight and on focus.
@@ -158,7 +164,11 @@ export const ClientActionsPage = () => {
               alwaysOn
             />,
           ]}
-          sort={{ field: "due_date", order: "ASC" }}
+          sort={
+            tab === "all"
+              ? { field: "created_at", order: "DESC" }
+              : { field: "due_date", order: "ASC" }
+          }
           actions={
             <TopToolbar>
               <Link
@@ -186,6 +196,11 @@ export const ClientActionsPage = () => {
           >
             <DataTable
               rowClick="edit"
+              rowClassName={(r) =>
+                newId != null && String(r.id) === newId
+                  ? "bg-primary/10 font-medium"
+                  : undefined
+              }
               bulkActionsToolbar={<EosBulkToolbar fields={COMMITMENT_BULK} />}
             >
               <DataTable.Col source="title" />

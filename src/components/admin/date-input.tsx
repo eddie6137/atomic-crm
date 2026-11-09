@@ -10,6 +10,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { InputHelperText } from "@/components/admin/input-helper-text";
 import { cn } from "@/lib/utils";
+import { CalendarDays } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { DatePickerCalendar } from "./date-picker-calendar";
+
+/** Mouse/trackpad devices open the in-app calendar on click; touch keeps the OS picker. */
+const hasFinePointer = () =>
+  typeof window !== "undefined" &&
+  typeof window.matchMedia === "function" &&
+  window.matchMedia("(pointer: fine)").matches;
 
 /**
  * Date picker input for editing date values in "YYYY-MM-DD" format.
@@ -95,6 +109,7 @@ export const DateInput = (props: DateInputProps) => {
     ...rest,
   });
   const localInputRef = React.useRef<HTMLInputElement>(null);
+  const [open, setOpen] = React.useState(false);
   // DateInput is not a really controlled input to ensure users can start entering a date, go to another input and come back to complete it.
   // This ref stores the value that is passed to the input defaultValue prop to solve this issue.
   const initialDefaultValueRef = React.useRef(field.value);
@@ -217,26 +232,72 @@ export const DateInput = (props: DateInputProps) => {
           />
         </FormLabel>
       )}
-      <FormControl>
-        <Input
-          ref={inputRef}
-          defaultValue={format(initialDefaultValueRef.current) ?? ""}
-          key={inputKey}
-          type="date"
-          onChange={handleChange}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          className={cn(
-            "ra-input",
-            `ra-input-${source}`,
-            "scheme-light dark:scheme-dark relative [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:opacity-100 appearance-none",
-            inputClassName,
-          )}
-          disabled={disabled || readOnly}
-          readOnly={readOnly}
-          {...rest}
-        />
-      </FormControl>
+      <div className="relative">
+        <FormControl>
+          <Input
+            ref={inputRef}
+            defaultValue={format(initialDefaultValueRef.current) ?? ""}
+            key={inputKey}
+            type="date"
+            onChange={handleChange}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            onClick={(e) => {
+              rest.onClick?.(e);
+              if (!disabled && !readOnly && hasFinePointer()) setOpen(true);
+            }}
+            className={cn(
+              "ra-input",
+              `ra-input-${source}`,
+              "scheme-light dark:scheme-dark relative pr-11 [&::-webkit-calendar-picker-indicator]:hidden appearance-none",
+              inputClassName,
+            )}
+            disabled={disabled || readOnly}
+            readOnly={readOnly}
+            {...rest}
+          />
+        </FormControl>
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Open calendar"
+                data-testid={`date-picker-trigger-${source}`}
+                disabled={disabled || readOnly}
+                className="absolute right-0.5 top-1/2 -translate-y-1/2 size-9 text-foreground"
+              >
+                <CalendarDays className="size-4" />
+              </Button>
+            }
+          />
+          <PopoverContent
+            align="end"
+            className="w-auto p-3"
+            initialFocus={false}
+          >
+            <DatePickerCalendar
+              value={localInputRef.current?.value || format(field.value) || ""}
+              onSelect={(ymd) => {
+                field.onChange(ymd);
+                setOpen(false);
+              }}
+              onClear={
+                isRequired
+                  ? undefined
+                  : () => {
+                      field.onChange("");
+                      if (localInputRef.current)
+                        localInputRef.current.value = "";
+                      setOpen(false);
+                    }
+              }
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
       <InputHelperText helperText={helperText} />
       <FormError />
     </FormField>

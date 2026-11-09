@@ -261,7 +261,10 @@ export const AutocompleteInput = (
               <ClearInputButton className="right-8" onClick={handleReset} />
             )}
           </div>
-          <PopoverContent className="w-full max-w-(--anchor-width) p-0">
+          <PopoverContent
+            align="start"
+            className="w-(--anchor-width) min-w-56 max-w-[calc(100vw-1rem)] p-0"
+          >
             {/* We handle the filtering ourselves */}
             <Command shouldFilter={!isFromReference}>
               <CommandInput

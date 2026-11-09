@@ -9,12 +9,16 @@ import {
 } from "./constants";
 
 export const CLIENT_ACTION_TABS = [
+  { id: "all", label: "All open" },
   { id: "mine", label: "My actions" },
   { id: "week", label: "Due this week" },
   { id: "overdue", label: "Overdue" },
   { id: "waiting", label: "Waiting on client" },
 ] as const;
 export type ClientActionTab = (typeof CLIENT_ACTION_TABS)[number]["id"];
+
+/** Default landing tab: every open action, so a just-created row is always visible. */
+export const DEFAULT_CLIENT_ACTION_TAB: ClientActionTab = "all";
 
 export const isClientActionTab = (v: unknown): v is ClientActionTab =>
   CLIENT_ACTION_TABS.some((t) => t.id === v);
@@ -51,6 +55,8 @@ export const clientActionFilter = (
     base.company_id = opts.companyId;
   if (opts.unclassified && tab !== "waiting") base["direction@is"] = null;
   switch (tab) {
+    case "all":
+      return base;
     case "mine":
       if (opts.identityId == null || opts.identityId === "") return null;
       return { ...base, owner_sales_id: opts.identityId };
@@ -88,6 +94,8 @@ export const matchesClientActionTab = (
   if (opts.unclassified && tab !== "waiting" && !isUnclassified(r.direction))
     return false;
   switch (tab) {
+    case "all":
+      return true;
     case "mine":
       return (
         opts.identityId != null &&

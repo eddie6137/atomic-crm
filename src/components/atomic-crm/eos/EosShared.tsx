@@ -28,6 +28,7 @@ const saleName = (c: any) => (c ? `${c.first_name} ${c.last_name}` : "");
 export const CompanyInput = ({
   source = "company_id",
   required,
+  alwaysOn,
 }: {
   source?: string;
   required?: boolean;
@@ -42,6 +43,9 @@ export const CompanyInput = ({
     <AutocompleteInput
       label="Account"
       optionText="name"
+      // UAT 2026-11-08: the closed field read "Search", which looked like an empty
+      // search box rather than an account picker. Filters (alwaysOn) mean "any".
+      placeholder={alwaysOn ? "All accounts" : "Select an account"}
       validate={required ? (v: any) => (v ? undefined : "Required") : undefined}
     />
   </ReferenceInput>
@@ -49,6 +53,7 @@ export const CompanyInput = ({
 
 export const OwnerInput = ({
   source = "owner_sales_id",
+  alwaysOn,
 }: {
   source?: string;
   alwaysOn?: boolean;
@@ -60,7 +65,11 @@ export const OwnerInput = ({
     filter={{ "disabled@neq": true }}
     sort={{ field: "last_name", order: "ASC" }}
   >
-    <AutocompleteInput label="Owner" optionText={saleName} />
+    <AutocompleteInput
+      label="Owner"
+      optionText={saleName}
+      placeholder={alwaysOn ? "All owners" : "Select an owner"}
+    />
   </ReferenceInput>
 );
 
@@ -86,6 +95,7 @@ export const ProjectInput = ({
       <AutocompleteInput
         label="Project"
         optionText="title"
+        placeholder="Select a project"
         validate={
           required ? (v: any) => (v ? undefined : "Required") : undefined
         }

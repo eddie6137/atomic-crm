@@ -7,6 +7,7 @@ import { DealsChart } from "./DealsChart";
 import { HotContacts } from "./HotContacts";
 import { TasksList } from "./TasksList";
 import { Welcome } from "./Welcome";
+import { OpenActionsWidget } from "../eos/OpenActionsWidget";
 
 export const Dashboard = () => {
   const {
@@ -35,12 +36,17 @@ export const Dashboard = () => {
     return null;
   }
 
-  if (!totalContact) {
-    return <DashboardStepper step={1} />;
-  }
-
-  if (!totalContactNotes) {
-    return <DashboardStepper step={2} contactId={dataContact?.[0]?.id} />;
+  if (!totalContact || !totalContactNotes) {
+    return (
+      <div className="flex flex-col gap-6 mt-1">
+        <OpenActionsWidget />
+        {!totalContact ? (
+          <DashboardStepper step={1} />
+        ) : (
+          <DashboardStepper step={2} contactId={dataContact?.[0]?.id} />
+        )}
+      </div>
+    );
   }
 
   return (
@@ -53,6 +59,7 @@ export const Dashboard = () => {
       </div>
       <div className="md:col-span-6">
         <div className="flex flex-col gap-6">
+          <OpenActionsWidget />
           {totalDeal ? <DealsChart /> : null}
           <DashboardActivityLog />
         </div>
