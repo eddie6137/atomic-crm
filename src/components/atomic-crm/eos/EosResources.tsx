@@ -268,7 +268,7 @@ export const CommitmentList = () => (
  * Actions "All open" (newest first) with the new row highlighted. Owner defaults to me.
  */
 export const commitmentCreatedPath = (id: unknown) =>
-  `${CLIENT_ACTIONS_PATH}?${new URLSearchParams({ tab: "all", new: String(id) })}`;
+  `${CLIENT_ACTIONS_PATH}?${new URLSearchParams({ tab: "all", highlight: String(id) })}`;
 
 export const CommitmentCreate = () => {
   const notify = useNotify();
@@ -300,6 +300,8 @@ export const CommitmentEdit = () => (
   <Edit
     resource="eos_commitments"
     mutationMode="pessimistic"
+    // After an edit, land back on Client Actions with the row highlighted.
+    redirect={(_r?: string, id?: unknown) => commitmentCreatedPath(id)}
     transform={normalizeCommitment}
     actions={
       <TopToolbar>

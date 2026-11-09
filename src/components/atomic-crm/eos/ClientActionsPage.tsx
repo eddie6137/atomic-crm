@@ -54,7 +54,7 @@ export const ClientActionsPage = () => {
     : DEFAULT_CLIENT_ACTION_TAB;
   const companyId = params.get("company_id");
   // Set by the create redirect so the just-saved row is highlighted.
-  const newId = params.get("new");
+  const newId = params.get("highlight");
   const unclassified = params.get("unclassified") === "1" && tab !== "waiting";
   const { identity, isPending: idPending } = useGetIdentity();
   // PT date drives week/overdue bounds; recomputed at PT midnight and on focus.
@@ -153,10 +153,24 @@ export const ClientActionsPage = () => {
             <SearchInput source="q" alwaysOn key="q" />,
             ...(companyId
               ? []
-              : [<CompanyInput source="company_id" key="company" alwaysOn />]),
+              : [
+                  <CompanyInput
+                    source="company_id"
+                    key="company"
+                    alwaysOn
+                    placeholder="All accounts"
+                  />,
+                ]),
             ...(tab === "mine"
               ? []
-              : [<OwnerInput source="owner_sales_id" key="owner" alwaysOn />]),
+              : [
+                  <OwnerInput
+                    source="owner_sales_id"
+                    key="owner"
+                    alwaysOn
+                    placeholder="All owners"
+                  />,
+                ]),
             <SelectInput
               source="priority"
               choices={choices(PRIORITIES)}

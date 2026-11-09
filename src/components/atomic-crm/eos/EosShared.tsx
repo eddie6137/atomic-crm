@@ -28,12 +28,14 @@ const saleName = (c: any) => (c ? `${c.first_name} ${c.last_name}` : "");
 export const CompanyInput = ({
   source = "company_id",
   required,
-  alwaysOn,
+  placeholder = "Select an account",
 }: {
   source?: string;
   required?: boolean;
   alwaysOn?: boolean;
   label?: string;
+  /** Filters pass "All accounts" (the filter form strips alwaysOn before render). */
+  placeholder?: string;
 }) => (
   <ReferenceInput
     source={source}
@@ -43,9 +45,8 @@ export const CompanyInput = ({
     <AutocompleteInput
       label="Account"
       optionText="name"
-      // UAT 2026-11-08: the closed field read "Search", which looked like an empty
-      // search box rather than an account picker. Filters (alwaysOn) mean "any".
-      placeholder={alwaysOn ? "All accounts" : "Select an account"}
+      // UAT 2026-11-08: the closed field read "Search", which looked like an empty search box.
+      placeholder={placeholder}
       validate={required ? (v: any) => (v ? undefined : "Required") : undefined}
     />
   </ReferenceInput>
@@ -53,11 +54,12 @@ export const CompanyInput = ({
 
 export const OwnerInput = ({
   source = "owner_sales_id",
-  alwaysOn,
+  placeholder = "Select an owner",
 }: {
   source?: string;
   alwaysOn?: boolean;
   label?: string;
+  placeholder?: string;
 }) => (
   <ReferenceInput
     source={source}
@@ -68,7 +70,7 @@ export const OwnerInput = ({
     <AutocompleteInput
       label="Owner"
       optionText={saleName}
-      placeholder={alwaysOn ? "All owners" : "Select an owner"}
+      placeholder={placeholder}
     />
   </ReferenceInput>
 );
@@ -113,8 +115,18 @@ export const eosFilters = (opts: {
 }) => {
   const f = [
     <SearchInput source="q" alwaysOn key="q" />,
-    <CompanyInput source="company_id" key="company" alwaysOn />,
-    <OwnerInput source="owner_sales_id" key="owner" alwaysOn />,
+    <CompanyInput
+      source="company_id"
+      key="company"
+      alwaysOn
+      placeholder="All accounts"
+    />,
+    <OwnerInput
+      source="owner_sales_id"
+      key="owner"
+      alwaysOn
+      placeholder="All owners"
+    />,
     <SelectInput
       source="status"
       choices={choices(opts.statuses)}

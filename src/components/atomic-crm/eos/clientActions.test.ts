@@ -214,7 +214,7 @@ describe("UAT 2026-11-08: a newly created action is always visible", () => {
   });
   it("create lands on All open with the new row id", () => {
     expect(commitmentCreatedPath("abc-1")).toBe(
-      "/client-actions?tab=all&new=abc-1",
+      "/client-actions?tab=all&highlight=abc-1",
     );
     expect(clientActionsLink("all")).toBe("/client-actions?tab=all");
   });
