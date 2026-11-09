@@ -6,6 +6,10 @@ import { testI18nProvider } from "@/components/atomic-crm/providers/commons/i18n
 import { ActionDrawer } from "./ActionDrawer";
 import { FORBIDDEN_WRITE_KEYS } from "./actionDrawerWrites";
 
+vi.mock("@/hooks/use-mobile", () => ({
+  useIsMobile: () => (globalThis as any).__ACTION_DRAWER_MOBILE__ === true,
+}));
+
 vi.mock("../providers/supabase/supabase", () => ({
   getSupabaseClient: () => {
     throw new Error("no network in this test");
@@ -321,4 +325,33 @@ describe("ActionDrawer (v1d U1)", () => {
       document.querySelector("[data-testid='action-drawer-field-company_id']"),
     ).toBeNull();
   });
+  it("focuses the heading on mobile open (CE nit 1) — not the title input", async () => {
+    (globalThis as any).__ACTION_DRAWER_MOBILE__ = true;
+    try {
+      const { dp } = makeDp();
+      const screen = await renderDrawer(dp);
+      await expect
+        .element(screen.getByTestId("action-drawer-title"))
+        .toBeVisible();
+      const heading = screen.getByTestId("action-drawer-heading");
+      await expect.element(heading).toBeInTheDocument();
+      // Heading is the autofocus target; title input must not be.
+      expect(heading.element().hasAttribute("data-autofocus")).toBe(true);
+      expect(
+        screen
+          .getByTestId("action-drawer-title")
+          .element()
+          .hasAttribute("data-autofocus"),
+      ).toBe(false);
+      // Simulate FormDrawer/Sheet initialFocus: focus [data-autofocus].
+      (heading.element() as HTMLElement).focus();
+      expect(document.activeElement).toBe(heading.element());
+      expect(document.activeElement?.tagName.toLowerCase()).not.toMatch(
+        /^(input|textarea|select)$/,
+      );
+    } finally {
+      delete (globalThis as any).__ACTION_DRAWER_MOBILE__;
+    }
+  });
+
 });
