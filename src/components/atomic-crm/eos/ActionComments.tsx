@@ -19,17 +19,20 @@ import {
  * Append-only: no edit or delete. Author and time are set by the DB trigger.
  * Comments are never copied into eos_activity (separate logs).
  */
+const PAGE = 100;
+
 export const ActionComments = ({ commitmentId }: { commitmentId: string }) => {
   const [body, setBody] = useState("");
+  const [pages, setPages] = useState(1);
   const [create, { isPending: saving }] = useCreate();
   const notify = useNotify();
   const refresh = useRefresh();
-  const { data, isPending, error } = useGetList(
+  const { data, total, isPending, error } = useGetList(
     COMMENTS_RESOURCE,
     {
       filter: { commitment_id: commitmentId, "archived_at@is": null },
       sort: { field: "created_at", order: "DESC" },
-      pagination: { page: 1, perPage: 100 },
+      pagination: { page: 1, perPage: PAGE * pages },
     },
     { retry: false },
   );
@@ -127,23 +130,44 @@ export const ActionComments = ({ commitmentId }: { commitmentId: string }) => {
       ) : !data?.length ? (
         <p className="text-sm text-muted-foreground">No comments yet.</p>
       ) : (
-        <ol className="flex flex-col gap-2 text-sm">
-          {data.map((c: any) => (
-            <li
-              key={c.id}
-              className="rounded-md border bg-muted/40 p-2"
-              data-testid="action-comment"
+        <>
+          {total != null && total > data.length && (
+            <p
+              className="text-xs text-muted-foreground"
+              data-testid="action-comments-count"
             >
-              <div className="text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">
-                  {nameOf(c.created_by)}
-                </span>{" "}
-                · {formatPT(c.created_at)}
-              </div>
-              <p className="whitespace-pre-wrap break-words">{c.body}</p>
-            </li>
-          ))}
-        </ol>
+              Showing first {data.length} of {total}
+            </p>
+          )}
+          <ol className="flex flex-col gap-2 text-sm">
+            {data.map((c: any) => (
+              <li
+                key={c.id}
+                className="rounded-md border bg-muted/40 p-2"
+                data-testid="action-comment"
+              >
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">
+                    {nameOf(c.created_by)}
+                  </span>{" "}
+                  · {formatPT(c.created_at)}
+                </div>
+                <p className="whitespace-pre-wrap break-words">{c.body}</p>
+              </li>
+            ))}
+          </ol>
+          {total != null && total > data.length && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="min-h-11 md:min-h-8 self-start"
+              data-testid="action-comments-load-more"
+              onClick={() => setPages((p) => p + 1)}
+            >
+              Load more ({data.length} of {total})
+            </Button>
+          )}
+        </>
       )}
     </div>
   );

@@ -46,7 +46,7 @@ const makeDp = () => {
       p.ids.map(String).includes(String(x.id)),
     ),
   }));
-  const getList = vi.fn(async (r: string) =>
+  const getList = vi.fn(async (r: string, _p?: any) =>
     r === COMMENTS_RESOURCE
       ? { data: [...comments], total: comments.length }
       : { data: [], total: 0 },
@@ -81,7 +81,7 @@ describe("ActionComments (v1d U1b)", () => {
     await expect.element(screen.getByText("System")).toBeVisible();
     const items = screen.getByTestId("action-comment").all();
     expect(items[0].element().textContent).toContain("Second");
-    expect(getList.mock.calls[0][1].filter).toEqual({
+    expect(getList.mock.calls[0]?.[1]?.filter).toEqual({
       commitment_id: "c1",
       "archived_at@is": null,
     });
@@ -121,5 +121,41 @@ describe("ActionComments (v1d U1b)", () => {
       .element(screen.getByTestId("action-comment-submit"))
       .toBeDisabled();
     expect(create).not.toHaveBeenCalled();
+  });
+  it("shows first N of total + Load more when total exceeds the page", async () => {
+    const many = Array.from({ length: 100 }, (_, i) => ({
+      id: `k${i}`,
+      commitment_id: "c1",
+      body: `Comment ${i}`,
+      created_by: 4,
+      created_at: `2026-11-08T${String(10 + (i % 10)).padStart(2, "0")}:00:00Z`,
+    }));
+    const getList = vi.fn(async (r: string, p?: any) => {
+      if (r !== COMMENTS_RESOURCE) return { data: [], total: 0 };
+      const per = p?.pagination?.perPage ?? 100;
+      return { data: many.slice(0, per), total: 150 };
+    });
+    const dp = {
+      getList,
+      getMany: vi.fn(async () => ({ data: sales })),
+      create: vi.fn(),
+      getOne: async () => ({ data: {} }),
+      getManyReference: async () => ({ data: [], total: 0 }),
+      update: async () => ({ data: {} }),
+      updateMany: async () => ({ data: [] }),
+      delete: async () => ({ data: {} }),
+      deleteMany: async () => ({ data: [] }),
+    } as unknown as DataProvider;
+    const screen = await renderIt(dp);
+    await expect
+      .element(screen.getByTestId("action-comments-count"))
+      .toHaveTextContent("Showing first 100 of 150");
+    await expect
+      .element(screen.getByTestId("action-comments-load-more"))
+      .toBeVisible();
+    await screen.getByTestId("action-comments-load-more").click();
+    await expect
+      .poll(() => getList.mock.calls.at(-1)?.[1]?.pagination?.perPage)
+      .toBe(200);
   });
 });

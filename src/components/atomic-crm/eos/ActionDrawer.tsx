@@ -79,12 +79,21 @@ export const ActionDrawer = (props: ActionDrawerProps) => {
         {body}
       </FormDrawer>
     );
+  const focusHeading = () => {
+    // Mirror FormDrawer: focus [data-autofocus] (the drawer heading), not the
+    // first input. Returning false keeps Base UI from focusing something else.
+    const root = document.querySelector('[data-testid="action-drawer-sheet"]');
+    const heading = root?.querySelector<HTMLElement>("[data-autofocus]");
+    heading?.focus({ preventScroll: true });
+    return false;
+  };
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
         data-testid="action-drawer-sheet"
         aria-describedby={undefined}
+        initialFocus={focusHeading}
         finalFocus={props.finalFocus}
         className="w-full gap-0 p-0 data-[side=right]:sm:max-w-[min(480px,40vw)] data-[side=right]:min-w-[380px]"
       >
@@ -102,9 +111,25 @@ const Title = ({
   children: ReactNode;
 }) =>
   isMobile ? (
-    <DrawerTitle className="sr-only">{children}</DrawerTitle>
+    // CE nit 1: focus the heading on open (not the title input) so iPhone
+    // doesn't raise the keyboard / invite accidental title edits.
+    <DrawerTitle
+      className="sr-only"
+      data-autofocus
+      data-testid="action-drawer-heading"
+      tabIndex={-1}
+    >
+      {children}
+    </DrawerTitle>
   ) : (
-    <SheetTitle className="sr-only">{children}</SheetTitle>
+    <SheetTitle
+      className="sr-only"
+      data-autofocus
+      data-testid="action-drawer-heading"
+      tabIndex={-1}
+    >
+      {children}
+    </SheetTitle>
   );
 
 const ActionDetail = ({
@@ -359,7 +384,6 @@ const InlineTitle = ({ record, save }: { record: any; save: Save }) => {
       <input
         id="action-drawer-title"
         data-testid="action-drawer-title"
-        data-autofocus
         className="w-full rounded-md border border-transparent bg-transparent px-2 -mx-2 min-h-11 text-lg font-semibold hover:border-border focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 outline-none"
         value={value}
         onChange={(e) => setValue(e.target.value)}
