@@ -156,6 +156,12 @@ export const normalizeCommitment = <T extends Record<string, any>>(
     : data;
 
 export const CLIENT_ACTIONS_PATH = "/client-actions";
+
+/** True when the Client Actions drawer is open: /client-actions with a non-empty ?item=. */
+export const isClientActionsDrawerOpen = (pathname: string, search: string) =>
+  (pathname === CLIENT_ACTIONS_PATH ||
+    pathname.startsWith(`${CLIENT_ACTIONS_PATH}/`)) &&
+  !!new URLSearchParams(search).get("item");
 export const clientActionsLink = (
   tab: ClientActionTab,
   companyId?: string | number | null,

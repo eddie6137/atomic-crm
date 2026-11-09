@@ -343,9 +343,8 @@ describe("ActionDrawer (v1d U1)", () => {
           .element()
           .hasAttribute("data-autofocus"),
       ).toBe(false);
-      // Simulate FormDrawer/Sheet initialFocus: focus [data-autofocus].
-      (heading.element() as HTMLElement).focus();
-      expect(document.activeElement).toBe(heading.element());
+      // CE nit 8: the Sheet's initialFocus really moves focus to the heading.
+      await expect.element(heading).toHaveFocus();
       expect(document.activeElement?.tagName.toLowerCase()).not.toMatch(
         /^(input|textarea|select)$/,
       );
@@ -353,5 +352,4 @@ describe("ActionDrawer (v1d U1)", () => {
       delete (globalThis as any).__ACTION_DRAWER_MOBILE__;
     }
   });
-
 });

@@ -1,6 +1,6 @@
 // v1d U2 board: pure lane predicate, filters, Confirm/status patches (spec §3, D2).
 import { addDays, COMMITMENT_OPEN, todayPT } from "./constants";
-import { activeActionFilter, sectionCount } from "./clientActions";
+import { sectionCount } from "./clientActions";
 
 export const BOARD_LANES = [
   "needs_review",
@@ -69,7 +69,12 @@ export const bucketOpenCards = <T extends { id: any }>(
   };
   for (const r of rows) {
     const lane = laneOf(r as any);
-    if (lane === "needs_review" || lane === "open" || lane === "in_progress" || lane === "blocked")
+    if (
+      lane === "needs_review" ||
+      lane === "open" ||
+      lane === "in_progress" ||
+      lane === "blocked"
+    )
       out[lane].push(r);
   }
   return out;
@@ -91,6 +96,36 @@ export const laneCountFilter = (
 };
 
 /**
+ * UTC instant (ISO) of 00:00 America/Los_Angeles on a PT calendar date.
+ * PT midnight is 07:00Z (PDT) or 08:00Z (PST); DST switches happen at 02:00,
+ * so midnight itself is never skipped or repeated.
+ */
+export const ptMidnightUtcIso = (ptDate: string) => {
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Los_Angeles",
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  for (const h of ["07", "08"]) {
+    const inst = new Date(`${ptDate}T${h}:00:00.000Z`);
+    const p = Object.fromEntries(
+      fmt.formatToParts(inst).map((x) => [x.type, x.value]),
+    );
+    if (
+      `${p.year}-${p.month}-${p.day}` === ptDate &&
+      p.hour === "00" &&
+      p.minute === "00"
+    )
+      return inst.toISOString();
+  }
+  return new Date(`${ptDate}T08:00:00.000Z`).toISOString();
+};
+
+/**
  * Q-done filter: same tab predicates with status=completed (no open set) and
  * updated_at >= PT today − 14 days. No @or.
  */
@@ -102,18 +137,25 @@ export const completedBoardFilter = (
   delete f["status@in"];
   f.status = "completed";
   f["archived_at@is"] = null;
-  // PostgREST timestamptz gte: start of that PT calendar day as ISO date is enough
-  // (updated_at is timestamptz; date-only compares as midnight UTC — use explicit PT noon-safe bound).
-  f["updated_at@gte"] = `${completedSincePT(now)}T08:00:00.000Z`; // ≈ midnight PT on that day
+  f["updated_at@gte"] = ptMidnightUtcIso(completedSincePT(now));
   return f;
 };
 
-/** Fixed open-set sort (D2): due_date asc nulls last, created_at desc, id asc. */
+/**
+ * Fixed open-set sort (D2): due_date asc nulls last, created_at desc, id asc.
+ * ra-data-postgrest emits `${field}.${dir}`, so a composite field string yields
+ * `order=due_date.asc,created_at.desc,id.asc` and the 200-row cut is deterministic.
+ */
 export const OPEN_BOARD_SORT = {
-  field: "due_date",
+  field: "due_date.asc,created_at.desc,id",
   order: "ASC" as const,
 };
-/** Secondary order is applied client-side after fetch (PostgREST single-field sort). */
+/** Q-done sort: updated_at desc, id asc (spec D2) → `order=updated_at.desc,id.asc`. */
+export const COMPLETED_BOARD_SORT = {
+  field: "updated_at.desc,id",
+  order: "ASC" as const,
+};
+/** Same order re-applied client-side (stable across refetch/merge). */
 export const sortOpenBoardCards = <
   T extends { due_date?: string | null; created_at?: string | null; id: any },
 >(
@@ -126,7 +168,11 @@ export const sortOpenBoardCards = <
     const ac = a.created_at ?? "";
     const bc = b.created_at ?? "";
     if (ac !== bc) return ac > bc ? -1 : 1;
-    return String(a.id) < String(b.id) ? -1 : String(a.id) > String(b.id) ? 1 : 0;
+    return String(a.id) < String(b.id)
+      ? -1
+      : String(a.id) > String(b.id)
+        ? 1
+        : 0;
   });
 
 /**
@@ -157,14 +203,5 @@ export const statusMovePatch = (
 
 export const laneHeaderCount = (shown: number, total: number) =>
   sectionCount(shown, total, shown);
-
-/** Open-set base used when the List filter already has the tab predicates. */
-export const openSetFromListFilter = (filterValues: Record<string, unknown>) => {
-  // Ensure open set is present (board ignores status chip; List permanent filter is open set).
-  const f: Record<string, unknown> = { ...filterValues, ...activeActionFilter() };
-  // List filterValues may include q, company_id, owner, priority — keep them.
-  delete f.status; // never a single status on the open query
-  return f;
-};
 
 export { sectionCount };

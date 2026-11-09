@@ -18,6 +18,7 @@ import {
 import { ContactCreateSheet } from "../contacts/ContactCreateSheet";
 import { useState } from "react";
 import { NoteCreateSheet } from "../notes/NoteCreateSheet";
+import { isClientActionsDrawerOpen } from "../eos/clientActions";
 
 export const MobileNavigation = () => {
   const location = useLocation();
@@ -44,14 +45,10 @@ export const MobileNavigation = () => {
   }
 
   // CTO nit (v1d U2): hide the floating create + global bottom nav while the
-  // Client Actions drawer/sheet is open so they don't overlap Priority on iPhone.
-  const drawerOpen =
-    typeof document !== "undefined" &&
-    document.body.dataset.eosDrawerOpen === "1";
-  // Re-render on dataset changes via a cheap poll of location+search (drawer uses URL ?item=).
-  const itemOpen = /(?:\?|&)item=/.test(location.search + location.hash);
-
-  if (drawerOpen || itemOpen) return null;
+  // Client Actions drawer/sheet is open (?item= on /client-actions) so they
+  // don't overlap Priority on iPhone. Derived from the router location only.
+  if (isClientActionsDrawerOpen(location.pathname, location.search))
+    return null;
 
   return (
     <nav

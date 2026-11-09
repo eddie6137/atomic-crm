@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isClientActionsDrawerOpen,
   clientActionFilter,
   matchesClientActionTab,
   normalizeCommitment,
@@ -240,6 +241,25 @@ describe("UAT 2026-11-08 review fixes", () => {
     ).toBe("/client-actions");
     expect(commitmentEditedPath("a1")).toBe(
       "/client-actions?tab=all&highlight=a1",
+    );
+  });
+});
+
+describe("CE nit 6: mobile nav hides only for the Client Actions drawer", () => {
+  it("needs /client-actions and a non-empty ?item=", () => {
+    expect(
+      isClientActionsDrawerOpen("/client-actions", "?tab=all&item=r2"),
+    ).toBe(true);
+    expect(isClientActionsDrawerOpen("/client-actions/", "?item=r2")).toBe(
+      true,
+    );
+    expect(isClientActionsDrawerOpen("/client-actions", "?tab=all")).toBe(
+      false,
+    );
+    expect(isClientActionsDrawerOpen("/client-actions", "?item=")).toBe(false);
+    expect(isClientActionsDrawerOpen("/contacts", "?item=r2")).toBe(false);
+    expect(isClientActionsDrawerOpen("/client-actionsx", "?item=r2")).toBe(
+      false,
     );
   });
 });

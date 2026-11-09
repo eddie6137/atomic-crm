@@ -7,6 +7,9 @@ import {
   confirmReviewPatch,
   laneCountFilter,
   laneOf,
+  OPEN_BOARD_SORT,
+  COMPLETED_BOARD_SORT,
+  ptMidnightUtcIso,
   sortOpenBoardCards,
   statusMovePatch,
   STATUS_MORE,
@@ -40,11 +43,41 @@ describe("laneOf (spec §3)", () => {
 describe("bucketOpenCards + sort", () => {
   it("buckets and keeps fixed sort (due asc nulls last, created desc, id)", () => {
     const rows = [
-      { id: "a", status: "open", needs_review: false, due_date: "2026-11-20", created_at: "2026-11-01T00:00:00Z" },
-      { id: "b", status: "open", needs_review: false, due_date: null, created_at: "2026-11-02T00:00:00Z" },
-      { id: "c", status: "open", needs_review: false, due_date: "2026-11-10", created_at: "2026-11-03T00:00:00Z" },
-      { id: "d", status: "ambiguous", needs_review: false, due_date: "2026-11-05", created_at: "2026-11-01T00:00:00Z" },
-      { id: "e", status: "blocked", needs_review: false, due_date: "2026-11-12", created_at: "2026-11-01T00:00:00Z" },
+      {
+        id: "a",
+        status: "open",
+        needs_review: false,
+        due_date: "2026-11-20",
+        created_at: "2026-11-01T00:00:00Z",
+      },
+      {
+        id: "b",
+        status: "open",
+        needs_review: false,
+        due_date: null,
+        created_at: "2026-11-02T00:00:00Z",
+      },
+      {
+        id: "c",
+        status: "open",
+        needs_review: false,
+        due_date: "2026-11-10",
+        created_at: "2026-11-03T00:00:00Z",
+      },
+      {
+        id: "d",
+        status: "ambiguous",
+        needs_review: false,
+        due_date: "2026-11-05",
+        created_at: "2026-11-01T00:00:00Z",
+      },
+      {
+        id: "e",
+        status: "blocked",
+        needs_review: false,
+        due_date: "2026-11-12",
+        created_at: "2026-11-01T00:00:00Z",
+      },
     ];
     const sorted = sortOpenBoardCards(rows);
     expect(sorted.map((r) => r.id)).toEqual(["d", "c", "e", "a", "b"]);
@@ -76,7 +109,9 @@ describe("filters (no @or)", () => {
     const f = completedBoardFilter(base, new Date("2026-11-08T20:00:00Z"));
     expect(f.status).toBe("completed");
     expect(f).not.toHaveProperty("status@in");
-    expect(f["updated_at@gte"]).toContain(completedSincePT(new Date("2026-11-08T20:00:00Z")));
+    expect(f["updated_at@gte"]).toContain(
+      completedSincePT(new Date("2026-11-08T20:00:00Z")),
+    );
     expect(JSON.stringify(f)).not.toMatch(/@or/);
   });
 });
@@ -124,5 +159,28 @@ describe("Confirm + status patches (M3, D5)", () => {
       "ambiguous",
     ]);
     expect(BOARD_LANES).toHaveLength(5);
+  });
+});
+
+describe("CE revise nits (PT cutoff, sort tie-break)", () => {
+  it("PT midnight is 07:00Z in PDT and 08:00Z in PST, incl. DST days", () => {
+    expect(ptMidnightUtcIso("2026-10-25")).toBe("2026-10-25T07:00:00.000Z"); // PDT
+    expect(ptMidnightUtcIso("2026-11-01")).toBe("2026-11-01T07:00:00.000Z"); // fall-back day, still PDT at 00:00
+    expect(ptMidnightUtcIso("2026-11-02")).toBe("2026-11-02T08:00:00.000Z"); // PST
+    expect(ptMidnightUtcIso("2026-03-08")).toBe("2026-03-08T08:00:00.000Z"); // spring-forward day, PST at 00:00
+    expect(ptMidnightUtcIso("2026-03-09")).toBe("2026-03-09T07:00:00.000Z");
+  });
+  it("completed cutoff on 2026-11-08 is 2026-10-25 00:00 PDT", () => {
+    const f = completedBoardFilter({}, new Date("2026-11-08T20:00:00Z"));
+    expect(f["updated_at@gte"]).toBe("2026-10-25T07:00:00.000Z");
+  });
+  it("server sorts carry an id tie-break (postgrest order string)", () => {
+    // ra-data-postgrest getOrderBy → `${field}.asc` for ASC
+    expect(`${OPEN_BOARD_SORT.field}.asc`).toBe(
+      "due_date.asc,created_at.desc,id.asc",
+    );
+    expect(OPEN_BOARD_SORT.order).toBe("ASC");
+    expect(`${COMPLETED_BOARD_SORT.field}.asc`).toBe("updated_at.desc,id.asc");
+    expect(COMPLETED_BOARD_SORT.order).toBe("ASC");
   });
 });

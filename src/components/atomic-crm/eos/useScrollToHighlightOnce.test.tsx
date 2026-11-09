@@ -19,9 +19,10 @@ describe("useScrollToHighlightOnce (CE nit D)", () => {
   });
   it("scrolls once per highlight id; refetch does not re-scroll", async () => {
     const { rerender } = await renderHook(
-      (p: { id: string | null; ready: boolean }) =>
-        useScrollToHighlightOnce(p.id, p.ready),
-      { initialProps: { id: "h1", ready: true } },
+      // renderHook types initialProps as optional, so the callback takes `p?`.
+      (p?: { id: string | null; ready: boolean }) =>
+        useScrollToHighlightOnce(p?.id ?? null, p?.ready ?? false),
+      { initialProps: { id: "h1" as string | null, ready: true } },
     );
     await vi.advanceTimersByTimeAsync(200);
     expect(scrollIntoView).toHaveBeenCalledTimes(1);

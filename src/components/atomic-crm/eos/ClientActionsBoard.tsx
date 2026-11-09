@@ -14,6 +14,7 @@ import {
   BOARD_LANES,
   bucketOpenCards,
   COMPLETED_BOARD_CAP,
+  COMPLETED_BOARD_SORT,
   completedBoardFilter,
   confirmReviewPatch,
   laneCountFilter,
@@ -32,6 +33,8 @@ const selectClass =
 
 type Props = {
   highlightId?: string | null;
+  /** Drawer item (?item=). On phone the lane switcher follows it so Prev/Next stays visible. */
+  itemId?: string | null;
   onOpenItem: (id: string | number) => void;
   /** List permanent filter (tab predicates + open set). Merged with filterValues. */
   permanentFilter: Record<string, unknown>;
@@ -47,6 +50,7 @@ type Props = {
  */
 export const ClientActionsBoard = ({
   highlightId,
+  itemId,
   onOpenItem,
   permanentFilter,
   onShowCompletedInList,
@@ -64,11 +68,8 @@ export const ClientActionsBoard = ({
     return f;
   }, [filterValues, permanentFilter]);
 
-  const openFilter = useMemo(() => {
-    const f = { ...baseFilter };
-    // Ensure open set (tab filter already has it via List permanent filter).
-    return f;
-  }, [baseFilter]);
+  // The permanent (tab) filter already carries the open set; the board adds nothing.
+  const openFilter = baseFilter;
 
   const {
     data: openRows,
@@ -118,7 +119,7 @@ export const ClientActionsBoard = ({
     {
       filter: doneFilter,
       pagination: { page: 1, perPage: COMPLETED_BOARD_CAP },
-      sort: { field: "updated_at", order: "DESC" },
+      sort: COMPLETED_BOARD_SORT,
     },
     { retry: false },
   );
@@ -150,16 +151,29 @@ export const ClientActionsBoard = ({
     onIds(ids);
   }, [buckets, doneRows, onIds]);
 
-  useScrollToHighlightOnce(
-    highlightId,
-    !openPending && !donePending,
-  );
+  useScrollToHighlightOnce(highlightId, !openPending && !donePending);
 
   const [mobileLane, setMobileLane] = useState<BoardLane>("open");
+  // CE nit 5: Prev/Next walks all lanes; on phone, show the lane holding the open item.
+  const itemLane = useMemo<BoardLane | null>(() => {
+    if (!itemId) return null;
+    for (const lane of BOARD_LANES) {
+      if (laneCards[lane].some((r) => String(r.id) === itemId)) return lane;
+    }
+    return null;
+    // laneCards is rebuilt each render from these memoised inputs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemId, buckets, doneRows]);
+  useEffect(() => {
+    if (isMobile && itemLane) setMobileLane(itemLane);
+  }, [isMobile, itemLane]);
 
   if (openError)
     return (
-      <p className="text-sm text-muted-foreground p-2" data-testid="board-error">
+      <p
+        className="text-sm text-muted-foreground p-2"
+        data-testid="board-error"
+      >
         Could not load the board.
       </p>
     );
@@ -167,7 +181,10 @@ export const ClientActionsBoard = ({
   const lanes = isMobile ? [mobileLane] : [...BOARD_LANES];
 
   return (
-    <div className="flex flex-col gap-2 min-w-0" data-testid="client-actions-board">
+    <div
+      className="flex flex-col gap-2 min-w-0"
+      data-testid="client-actions-board"
+    >
       {isMobile && (
         <div
           role="tablist"
@@ -308,9 +325,7 @@ const BoardLaneColumn = ({
             record={r}
             highlightId={highlightId}
             onOpen={onOpenItem}
-            footer={
-              <CardStatusControls record={r} lane={lane} />
-            }
+            footer={<CardStatusControls record={r} lane={lane} />}
           />
         ))
       )}
@@ -333,13 +348,25 @@ const CardStatusControls = ({
   const [askingBlocker, setAskingBlocker] = useState(false);
 
   const run = (patch: Record<string, unknown>) => {
+    // CE nit 3: a status move on a flagged card keeps it in Needs review; say so.
+    const nextStatus = (patch.status as string | undefined) ?? record.status;
+    const staysInReview =
+      record.needs_review === true &&
+      patch.needs_review !== false &&
+      typeof patch.status === "string" &&
+      ["open", "in_progress", "blocked"].includes(nextStatus);
     update(
       "eos_commitments",
       { id: record.id, data: patch, previousData: record },
       {
         mutationMode: "pessimistic",
         onSuccess: () => {
-          notify("Saved", { type: "success" });
+          notify(
+            staysInReview
+              ? "Saved. Still needs review: tap Confirm to move it."
+              : "Saved",
+            { type: "success" },
+          );
           refresh();
           setAskingBlocker(false);
           setBlocker("");
@@ -380,7 +407,10 @@ const CardStatusControls = ({
         <StatusSelectOptions current={record.status} />
       </select>
       {askingBlocker && (
-        <div className="flex flex-col gap-1 w-full" data-testid="board-blocker-prompt">
+        <div
+          className="flex flex-col gap-1 w-full"
+          data-testid="board-blocker-prompt"
+        >
           <input
             className={selectClass}
             placeholder="Blocker (optional)"
@@ -417,9 +447,7 @@ const CardStatusControls = ({
           data-testid="board-confirm-review"
           disabled={isPending || confirmPatch == null}
           title={
-            confirmPatch == null
-              ? "Add an account first"
-              : "Confirm review"
+            confirmPatch == null ? "Add an account first" : "Confirm review"
           }
           onClick={() => confirmPatch && run(confirmPatch)}
         >

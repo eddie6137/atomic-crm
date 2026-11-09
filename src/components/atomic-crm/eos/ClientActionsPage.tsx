@@ -69,6 +69,7 @@ export const ClientActionsPage = () => {
     view,
     item,
     highlight: newId,
+    params,
     setClientActionsParams,
     openItem,
     replaceItem,
@@ -84,25 +85,14 @@ export const ClientActionsPage = () => {
     if (view !== storedView) setStoredView(view);
   }, [view]); // eslint-disable-line react-hooks/exhaustive-deps -- store write only on URL change
   useEffect(() => {
-    const sp = new URLSearchParams(window.location.search);
-    // Hash router: search is after #/...?
-    const hash = window.location.hash || "";
-    const qi = hash.indexOf("?");
-    const fromHash = qi >= 0 ? new URLSearchParams(hash.slice(qi + 1)) : sp;
-    if (!fromHash.get("view") && storedView === "board") {
+    // CE nit 9: read the router's search params (works for hash and browser routers).
+    if (!params.get("view") && storedView === "board") {
       setClientActionsParams({ view: "board" });
     }
     // once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  // CTO nit: hide floating/global mobile nav while the drawer/sheet is open.
-  useEffect(() => {
-    if (item) document.body.dataset.eosDrawerOpen = "1";
-    else delete document.body.dataset.eosDrawerOpen;
-    return () => {
-      delete document.body.dataset.eosDrawerOpen;
-    };
-  }, [item]);
+  // CTO nit: MobileNavigation hides itself while ?item= is set on /client-actions.
   const { identity, isPending: idPending } = useGetIdentity();
   // PT date drives week/overdue bounds; recomputed at PT midnight and on focus.
   const ptDate = usePTDate();
@@ -287,10 +277,13 @@ export const ClientActionsPage = () => {
             </TopToolbar>
           }
         >
-          <ListIdsReporter onIds={setPageIds} />
+          {/* CE MF2: only the list reports its page ids; in board view the List runs
+              perPage:1 and would clobber the board's ids (Prev/Next). */}
+          {view === "list" && <ListIdsReporter onIds={setPageIds} />}
           {view === "board" ? (
             <ClientActionsBoard
               highlightId={newId}
+              itemId={item}
               onOpenItem={openItem}
               permanentFilter={filter}
               onIds={setPageIds}
