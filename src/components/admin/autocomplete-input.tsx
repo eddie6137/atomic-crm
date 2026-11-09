@@ -83,6 +83,11 @@ export const AutocompleteInput = (
     ChoicesProps & {
       className?: string;
       clearable?: boolean;
+      /**
+       * When false, choosing the already-selected option keeps it (no toggle-off).
+       * Use with `clearable` so clearing stays an explicit action. Default true.
+       */
+      toggleOnReselect?: boolean;
       disableValue?: string;
       filterToQuery?: (searchText: string) => any;
       translateChoice?: boolean;
@@ -93,6 +98,7 @@ export const AutocompleteInput = (
 ) => {
   const {
     clearable = false,
+    toggleOnReselect = true,
     filterToQuery = DefaultFilterToQuery,
     inputText,
     create,
@@ -177,13 +183,25 @@ export const AutocompleteInput = (
         return;
       }
       if (field.value === value && !isRequired) {
-        handleReset();
+        if (toggleOnReselect) {
+          handleReset();
+        } else {
+          setOpen(false);
+        }
         return;
       }
       field.onChange(value);
       setOpen(false);
     },
-    [field, getChoiceValue, createValue, isRequired, handleReset, setOpen],
+    [
+      field,
+      getChoiceValue,
+      createValue,
+      isRequired,
+      toggleOnReselect,
+      handleReset,
+      setOpen,
+    ],
   );
 
   const {

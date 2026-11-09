@@ -55,11 +55,14 @@ export const CompanyInput = ({
 export const OwnerInput = ({
   source = "owner_sales_id",
   placeholder = "Select an owner",
+  explicitClear,
 }: {
   source?: string;
   alwaysOn?: boolean;
   label?: string;
   placeholder?: string;
+  /** Re-picking the current owner keeps it; unassign via the Clear button. */
+  explicitClear?: boolean;
 }) => (
   <ReferenceInput
     source={source}
@@ -71,6 +74,7 @@ export const OwnerInput = ({
       label="Owner"
       optionText={saleName}
       placeholder={placeholder}
+      {...(explicitClear ? { clearable: true, toggleOnReselect: false } : {})}
     />
   </ReferenceInput>
 );

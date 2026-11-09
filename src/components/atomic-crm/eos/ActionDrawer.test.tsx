@@ -285,6 +285,22 @@ describe("ActionDrawer (v1d U1)", () => {
     expect(update.mock.calls[0][1].data).toEqual({ owner_sales_id: 4 });
   });
 
+  it("owner: re-picking the current owner writes nothing; Clear unassigns explicitly", async () => {
+    const { dp, update } = makeDp();
+    const screen = await renderDrawer(dp);
+    const field = screen.getByTestId("action-drawer-field-owner_sales_id");
+    await field.getByRole("combobox").click();
+    await screen.getByRole("option", { name: "Pat Demo" }).click();
+    await new Promise((r) => setTimeout(r, 400));
+    expect(update).not.toHaveBeenCalled();
+    await expect
+      .element(field.getByRole("combobox"))
+      .toHaveTextContent("Pat Demo");
+    await field.getByRole("button", { name: /clear/i }).click();
+    await expect.poll(() => update.mock.calls.length).toBe(1);
+    expect(update.mock.calls[0][1].data).toEqual({ owner_sales_id: null });
+  });
+
   it("account: editable with no Clear", async () => {
     const { dp } = makeDp();
     const screen = await renderDrawer(dp);

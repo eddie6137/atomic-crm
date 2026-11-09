@@ -196,7 +196,7 @@ const ActionDetail = ({
               </select>
             </Labeled>
             <FieldForm record={record} field="owner_sales_id" save={save.run}>
-              <OwnerInput />
+              <OwnerInput explicitClear />
             </FieldForm>
             <FieldForm
               record={record}
