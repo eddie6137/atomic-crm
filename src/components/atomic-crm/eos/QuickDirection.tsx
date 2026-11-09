@@ -35,6 +35,7 @@ export const QuickDirection = () => {
       // Never let the control trigger the row's edit click.
       onClick={(e) => e.stopPropagation()}
       onKeyDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
       onChange={(e) => {
         const next = toDirectionValue(e.target.value);
         update(
@@ -51,7 +52,7 @@ export const QuickDirection = () => {
           },
         );
       }}
-      className={`min-h-11 md:min-h-8 rounded-md border bg-background px-2 text-sm ${blank ? "border-amber-500 text-amber-700 dark:text-amber-400" : ""}`}
+      className={`min-h-11 md:min-h-8 rounded-md border bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 ${blank ? "border-amber-500 text-amber-700 dark:text-amber-400" : ""}`}
     >
       <option value="">Unclassified</option>
       {DIRECTION_OPTIONS.map((o) => (

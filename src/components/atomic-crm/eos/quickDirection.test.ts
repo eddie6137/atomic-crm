@@ -9,16 +9,17 @@ import {
 
 const now = new Date("2026-11-09T04:00:00Z"); // Sun Nov 8 2026 20:00 PT
 const open = { status: "open", archived_at: null, due_date: "2026-11-05" };
-// Synthetic fixture (no client data): 5 open rows, 3 blank direction.
+// Synthetic fixture (no client data): 5 open rows, 3 with SQL NULL direction
+// (mirrors `direction IS NULL`; blank strings are covered by isUnclassified only).
 const rows = [
   { id: 1, ...open, direction: null },
-  { id: 2, ...open, direction: "" },
-  { id: 3, ...open, direction: undefined },
+  { id: 2, ...open, direction: null },
+  { id: 3, ...open, direction: null },
   { id: 4, ...open, direction: "to_client" },
   { id: 5, ...open, direction: "from_client" },
   { id: 6, ...open, status: "completed", direction: null },
 ];
-const count = (rs: typeof rows, tab: "overdue" | "waiting", u = false) =>
+const count = (rs: any[], tab: "overdue" | "waiting", u = false) =>
   rs.filter((r) =>
     matchesClientActionTab(r as any, tab, { now, unclassified: u }),
   ).length;

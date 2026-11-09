@@ -248,11 +248,12 @@ const UnclassifiedChip = ({
       type="button"
       aria-pressed={active}
       onClick={onToggle}
+      title="Open actions in this tab (and account) with no direction. Ignores search, owner and priority filters."
       data-testid="client-actions-unclassified"
       data-count={isPending || error ? "" : String(total ?? 0)}
       className={`inline-flex items-center gap-1 rounded-full border px-3 min-h-11 md:min-h-8 text-sm ${active ? "bg-amber-100 border-amber-500 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100" : (total ?? 0) > 0 ? "border-amber-500 text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}
     >
-      Unclassified: <b>{n}</b>
+      Unclassified in tab: <b>{n}</b>
       {active && <X className="size-3" aria-hidden />}
     </button>
   );
