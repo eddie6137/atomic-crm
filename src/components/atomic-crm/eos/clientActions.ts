@@ -41,12 +41,15 @@ export const clientActionFilter = (
     now?: Date;
     identityId?: string | number | null;
     companyId?: string | number | null;
+    /** Narrow to rows with no direction yet. Ignored on Waiting (always from_client). */
+    unclassified?: boolean;
   } = {},
 ): Record<string, unknown> | null => {
   const now = opts.now ?? new Date();
   const base: Record<string, unknown> = activeActionFilter();
   if (opts.companyId != null && opts.companyId !== "")
     base.company_id = opts.companyId;
+  if (opts.unclassified && tab !== "waiting") base["direction@is"] = null;
   switch (tab) {
     case "mine":
       if (opts.identityId == null || opts.identityId === "") return null;
@@ -73,11 +76,17 @@ export const matchesClientActionTab = (
     direction?: string | null;
   },
   tab: ClientActionTab,
-  opts: { now?: Date; identityId?: string | number | null } = {},
+  opts: {
+    now?: Date;
+    identityId?: string | number | null;
+    unclassified?: boolean;
+  } = {},
 ) => {
   const now = opts.now ?? new Date();
   if (r.archived_at != null) return false;
   if (!r.status || !COMMITMENT_OPEN.includes(r.status)) return false;
+  if (opts.unclassified && tab !== "waiting" && !isUnclassified(r.direction))
+    return false;
   switch (tab) {
     case "mine":
       return (
@@ -93,6 +102,26 @@ export const matchesClientActionTab = (
     case "waiting":
       return r.direction === "from_client";
   }
+};
+
+/** Quick-classify: the three values the existing direction check constraint allows. */
+export const DIRECTION_OPTIONS = [
+  { id: "from_client", label: "From client" },
+  { id: "to_client", label: "To client" },
+  { id: "internal", label: "Internal" },
+] as const;
+export type CommitmentDirection = (typeof DIRECTION_OPTIONS)[number]["id"];
+
+/** Blank direction (null, undefined or empty) = unclassified. */
+export const isUnclassified = (d: unknown) =>
+  d == null || (typeof d === "string" && d.trim() === "");
+
+/** Select value to DB value: "" clears to null; anything outside the allowed set is rejected. */
+export const toDirectionValue = (v: string): CommitmentDirection | null => {
+  if (v === "") return null;
+  const hit = DIRECTION_OPTIONS.find((o) => o.id === v);
+  if (!hit) throw new Error(`Invalid direction: ${v}`);
+  return hit.id;
 };
 
 /** UI "done" never reaches the DB: it maps to the existing 'completed' status. */

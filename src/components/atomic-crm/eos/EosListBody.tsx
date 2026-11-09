@@ -22,8 +22,11 @@ export const EosListBody = ({
   dateSource = "due_date",
   extra,
   bulkFields,
+  cardActions,
 }: {
   children: ReactNode;
+  /** Controls rendered under a card, outside its link (e.g. quick-classify). */
+  cardActions?: (r: any) => ReactNode;
   bulkFields?: BulkField[];
   dateSource?: string | null;
   extra?: (r: any) => ReactNode;
@@ -153,6 +156,14 @@ export const EosListBody = ({
                   {extra?.(r)}
                 </div>
               </Link>
+              {cardActions && (
+                <div
+                  className="px-3 pb-3 flex items-center gap-2 text-xs"
+                  data-testid="eos-card-actions"
+                >
+                  {cardActions(r)}
+                </div>
+              )}
               {(r.links?.length || r.attachments?.length) > 0 && (
                 <div className="px-3 pb-3 text-xs">
                   <LinksField />

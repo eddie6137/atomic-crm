@@ -27,6 +27,7 @@ import {
   type ClientActionTab,
 } from "./clientActions";
 import { usePTDate } from "./usePTDate";
+import { QuickDirection } from "./QuickDirection";
 
 /** Noon PT-ish instant for a PT date string (safe for date math on any DST day). */
 const ptNoon = (d: string) => new Date(`${d}T20:00:00Z`);
@@ -48,6 +49,7 @@ export const ClientActionsPage = () => {
   const rawTab = params.get("tab");
   const tab: ClientActionTab = isClientActionTab(rawTab) ? rawTab : "mine";
   const companyId = params.get("company_id");
+  const unclassified = params.get("unclassified") === "1" && tab !== "waiting";
   const { identity, isPending: idPending } = useGetIdentity();
   // PT date drives week/overdue bounds; recomputed at PT midnight and on focus.
   const ptDate = usePTDate();
@@ -57,9 +59,16 @@ export const ClientActionsPage = () => {
         identityId: identity?.id,
         companyId,
         now: ptNoon(ptDate),
+        unclassified,
       }),
-    [tab, identity?.id, companyId, ptDate],
+    [tab, identity?.id, companyId, ptDate, unclassified],
   );
+  const toggleUnclassified = () => {
+    const p = new URLSearchParams(params);
+    if (unclassified) p.delete("unclassified");
+    else p.set("unclassified", "1");
+    setParams(p, { replace: true });
+  };
   const setTab = (t: ClientActionTab) => {
     const p = new URLSearchParams(params);
     p.set("tab", t);
@@ -99,6 +108,16 @@ export const ClientActionsPage = () => {
       <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
         <span>{tabHint(tab, ptDate)}</span>
         {companyId && <CompanyChip id={companyId} onClear={clearCompany} />}
+        {tab !== "waiting" && (
+          <UnclassifiedChip
+            tab={tab}
+            identityId={identity?.id}
+            companyId={companyId}
+            ptDate={ptDate}
+            active={unclassified}
+            onToggle={toggleUnclassified}
+          />
+        )}
         <Link
           to="/tasks"
           className="ml-auto underline min-h-11 inline-flex items-center"
@@ -118,7 +137,7 @@ export const ClientActionsPage = () => {
         </p>
       ) : (
         <List
-          key={`${tab}:${companyId ?? ""}:${ptDate}`}
+          key={`${tab}:${companyId ?? ""}:${ptDate}:${unclassified ? "u" : ""}`}
           resource="eos_commitments"
           title="Client Actions"
           storeKey={`client-actions.${tab}`}
@@ -156,7 +175,15 @@ export const ClientActionsPage = () => {
             </TopToolbar>
           }
         >
-          <EosListBody bulkFields={COMMITMENT_BULK}>
+          <EosListBody
+            bulkFields={COMMITMENT_BULK}
+            cardActions={() => (
+              <>
+                <span className="text-muted-foreground">Direction</span>
+                <QuickDirection />
+              </>
+            )}
+          >
             <DataTable
               rowClick="edit"
               bulkActionsToolbar={<EosBulkToolbar fields={COMMITMENT_BULK} />}
@@ -164,7 +191,9 @@ export const ClientActionsPage = () => {
               <DataTable.Col source="title" />
               {CommonCols()}
               <DataTable.Col source="status" />
-              <DataTable.Col source="direction" />
+              <DataTable.Col source="direction" label="Direction">
+                <QuickDirection />
+              </DataTable.Col>
               <DataTable.Col source="due_date" label="Due">
                 <DueField />
               </DataTable.Col>
@@ -180,6 +209,54 @@ export const ClientActionsPage = () => {
   );
 };
 ClientActionsPage.path = CLIENT_ACTIONS_PATH;
+
+/** Count of open, blank-direction rows in the current tab (+ account); toggles the filter. */
+const UnclassifiedChip = ({
+  tab,
+  identityId,
+  companyId,
+  ptDate,
+  active,
+  onToggle,
+}: {
+  tab: ClientActionTab;
+  identityId?: string | number | null;
+  companyId: string | null;
+  ptDate: string;
+  active: boolean;
+  onToggle: () => void;
+}) => {
+  const countFilter = clientActionFilter(tab, {
+    identityId,
+    companyId,
+    now: ptNoon(ptDate),
+    unclassified: true,
+  });
+  const { total, isPending, error } = useGetList(
+    "eos_commitments",
+    {
+      filter: countFilter ?? {},
+      pagination: { page: 1, perPage: 1 },
+      sort: { field: "id", order: "ASC" },
+    },
+    { enabled: countFilter != null, retry: false },
+  );
+  if (countFilter == null) return null;
+  const n = isPending ? "…" : error ? "?" : String(total ?? 0);
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onToggle}
+      data-testid="client-actions-unclassified"
+      data-count={isPending || error ? "" : String(total ?? 0)}
+      className={`inline-flex items-center gap-1 rounded-full border px-3 min-h-11 md:min-h-8 text-sm ${active ? "bg-amber-100 border-amber-500 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100" : (total ?? 0) > 0 ? "border-amber-500 text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}
+    >
+      Unclassified: <b>{n}</b>
+      {active && <X className="size-3" aria-hidden />}
+    </button>
+  );
+};
 
 const CompanyChip = ({ id, onClear }: { id: string; onClear: () => void }) => {
   const { data } = useGetOne("companies", { id }, { retry: false });
