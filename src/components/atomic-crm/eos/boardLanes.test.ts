@@ -1,4 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import postgrestRestProvider, {
+  defaultPrimaryKeys,
+  defaultSchema,
+} from "@raphiniert/ra-data-postgrest";
 import {
   BOARD_LANES,
   bucketOpenCards,
@@ -182,5 +186,36 @@ describe("CE revise nits (PT cutoff, sort tie-break)", () => {
     expect(OPEN_BOARD_SORT.order).toBe("ASC");
     expect(`${COMPLETED_BOARD_SORT.field}.asc`).toBe("updated_at.desc,id.asc");
     expect(COMPLETED_BOARD_SORT.order).toBe("ASC");
+  });
+});
+
+describe("CE nit C: composite sort survives the real postgrest provider", () => {
+  it("emits order=due_date.asc,created_at.desc,id.asc and updated_at.desc,id.asc", async () => {
+    const httpClient = vi.fn(async () => ({
+      json: [],
+      headers: new Headers({ "content-range": "*/0" }),
+    }));
+    const dp = postgrestRestProvider({
+      apiUrl: "https://example.invalid/rest/v1",
+      httpClient,
+      defaultListOp: "eq",
+      primaryKeys: defaultPrimaryKeys,
+      schema: defaultSchema,
+      sortOrder: "asc,desc.nullslast" as any, // same as the app's supabase dataProvider
+    });
+    const orderOf = async (sort: { field: string; order: "ASC" | "DESC" }) => {
+      httpClient.mockClear();
+      await dp.getList("eos_commitments", {
+        pagination: { page: 1, perPage: 200 },
+        sort,
+        filter: {},
+      });
+      const url = new URL((httpClient.mock.calls[0] as unknown[])[0] as string);
+      return url.searchParams.get("order");
+    };
+    expect(await orderOf(OPEN_BOARD_SORT)).toBe(
+      "due_date.asc,created_at.desc,id.asc",
+    );
+    expect(await orderOf(COMPLETED_BOARD_SORT)).toBe("updated_at.desc,id.asc");
   });
 });

@@ -32,13 +32,14 @@ const row = (
   direction: "to_client",
   due_date: due,
   created_at: "2026-11-01T00:00:00Z",
-  updated_at: new Date().toISOString(),
+  updated_at: new Date(Date.now() - 2 * 864e5).toISOString(), // 2 days ago: inside the 14-day cutoff
   archived_at: null,
   ...extra,
 });
 
 // Open lane (due order): r1, r2, r3. In progress: r4. Completed: c1.
-const ROWS = [
+// Built per render so c1's updated_at is always "now" for the clock in use (CE MF4).
+const rows = () => [
   row("r2", "open", "2026-11-12"),
   row("r1", "open", "2026-11-10"),
   row("r3", "open", "2026-11-14"),
@@ -65,7 +66,7 @@ const Url = () => {
 };
 
 const renderPage = (url: string, listDelay = 0) => {
-  const { dp } = makeFakeProvider(ROWS);
+  const { dp } = makeFakeProvider(rows());
   return render(
     <MemoryRouter initialEntries={[url]}>
       <CoreAdminContext

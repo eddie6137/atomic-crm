@@ -123,7 +123,7 @@ const waitLoaded = () =>
     .toBe(true);
 
 describe("ClientActionsBoard (v1d U2)", () => {
-  for (const q of [undefined, "deck"]) {
+  for (const q of [undefined, "deck", "k"]) {
     it(`cap > 200${q ? " with q" : ""}: every truncated lane shows "first n of N" and N = its count query`, async () => {
       const rows = mkOpenRows(260);
       const { dp, getList } = makeFakeProvider(rows);
@@ -134,7 +134,8 @@ describe("ClientActionsBoard (v1d U2)", () => {
       const base = { ...filterValues, ...permanentFilter };
       const totals = expectedTotals(rows, base);
       const openTotal = queryRows(rows, base).length;
-      if (!q) expect(openTotal).toBeGreaterThan(OPEN_BOARD_CAP); // cap actually bites
+      // cap actually bites (also under search: "k" matches every Deck/Task title)
+      if (q !== "deck") expect(openTotal).toBeGreaterThan(OPEN_BOARD_CAP);
       let truncated = 0;
       for (const lane of BOARD_LANES) {
         const shown = laneIds(lane).length;
@@ -147,7 +148,7 @@ describe("ClientActionsBoard (v1d U2)", () => {
           expect(laneCountText(lane)).toBe(String(N));
         }
       }
-      if (!q) expect(truncated).toBeGreaterThan(0);
+      if (q !== "deck") expect(truncated).toBeGreaterThan(0);
       // Loaded open cards are exactly the first 200 of the fixed server order.
       const loaded = BOARD_LANES.filter((l) => l !== "completed").flatMap(
         laneIds,
@@ -193,6 +194,7 @@ describe("ClientActionsBoard (v1d U2)", () => {
           ...filterValues,
           ...permanentFilter,
         }).map((r) => r.id);
+        expect(listIds.length).toBeGreaterThan(0); // CE nit A: no vacuous case
         const boardOpen = (
           ["needs_review", "open", "in_progress", "blocked"] as const
         ).flatMap(laneIds);
@@ -235,7 +237,13 @@ describe("ClientActionsBoard (v1d U2)", () => {
     const permanentFilter = clientActionFilter("all", { now: NOW })!;
     await renderBoard(dp, permanentFilter, {}, { onShow });
     await waitLoaded();
-    expect(laneIds("completed").length).toBeGreaterThan(0);
+    // MF4: data is relative to the real PT today — 2-day-old rows are in, 20-day-old out.
+    expect([...laneIds("completed")].sort()).toEqual([
+      "m05",
+      "m21",
+      "m37",
+      "w4",
+    ]);
     await userEvent.click(
       document.querySelector<HTMLElement>(
         '[data-testid="board-completed-show-in-list"]',

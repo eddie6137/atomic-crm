@@ -2,6 +2,7 @@
 // Client Actions list and board build, so list and board can be compared by ID.
 import { vi } from "vitest";
 import type { DataProvider } from "ra-core";
+import { addDays, todayPT } from "./constants";
 
 export type FakeRow = {
   id: string;
@@ -140,8 +141,14 @@ export const makeFakeProvider = (rows: FakeRow[]) => {
   return { dp, getList };
 };
 
-/** Deterministic mixed dataset: every lane, tabs, ties on due_date, q-matchable titles. */
-export const mixedRows = (now = "2026-11-08"): FakeRow[] => {
+/**
+ * Deterministic mixed dataset: every lane, tabs, ties on due_date, q-matchable titles.
+ * Completed `updated_at` is relative to the real PT today (CE MF4): half the completed
+ * rows are 2 days old (inside the 14-day board cutoff), half 20 days old (outside),
+ * so the Completed lane is non-empty and filtered on any date.
+ */
+export const mixedRows = (realNow: Date = new Date()): FakeRow[] => {
+  const today = todayPT(realNow);
   const statuses = [
     "open",
     "in_progress",
@@ -152,7 +159,7 @@ export const mixedRows = (now = "2026-11-08"): FakeRow[] => {
     "superseded",
     "open",
   ];
-  return Array.from({ length: 48 }, (_, i) => {
+  const rows: FakeRow[] = Array.from({ length: 48 }, (_, i) => {
     const status = statuses[i % statuses.length];
     const day = (i % 20) + 1;
     return {
@@ -168,9 +175,35 @@ export const mixedRows = (now = "2026-11-08"): FakeRow[] => {
       created_at: `2026-10-${String((i % 28) + 1).padStart(2, "0")}T12:00:00Z`,
       updated_at:
         status === "completed"
-          ? `2026-${i % 2 ? "11-0" + ((i % 8) + 1) : "10-1" + (i % 9)}T10:00:00Z`
-          : `${now}T10:00:00Z`,
+          ? `${addDays(today, i % 16 === 5 ? -2 : -20)}T18:00:00Z`
+          : `${today}T18:00:00Z`,
       archived_at: i === 13 ? "2026-11-01T00:00:00Z" : null,
     };
   });
+  // CE nit A: Waiting-on-client rows that match "priority medium + account 9"
+  // and "q=task + owner 4", in two lanes, so no parity case is vacuous.
+  const waiting = (id: string, status: string, needs_review = false) => ({
+    id,
+    title: `Task waiting ${id}`,
+    status,
+    needs_review,
+    company_id: 9,
+    owner_sales_id: 4,
+    priority: "medium",
+    direction: "from_client",
+    due_date: "2026-11-05",
+    created_at: "2026-10-30T12:00:00Z",
+    updated_at:
+      status === "completed"
+        ? `${addDays(today, -1)}T18:00:00Z`
+        : `${today}T18:00:00Z`,
+    archived_at: null,
+  });
+  rows.push(
+    waiting("w1", "open"),
+    waiting("w2", "in_progress"),
+    waiting("w3", "blocked", true),
+    waiting("w4", "completed"),
+  );
+  return rows;
 };
