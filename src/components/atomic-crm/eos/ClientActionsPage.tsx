@@ -1,6 +1,12 @@
-import { useMemo, useState } from "react";
-import { useGetIdentity, useGetList, useGetOne } from "ra-core";
-import { Link, useSearchParams } from "react-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useGetIdentity,
+  useGetList,
+  useGetOne,
+  useListContext,
+  useRecordContext,
+} from "ra-core";
+import { Link } from "react-router";
 import { Plus, X } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { DataTable } from "@/components/admin/data-table";
@@ -19,18 +25,22 @@ import { COMMITMENT_BULK } from "./bulkFields";
 import {
   activeActionFilter,
   CLIENT_ACTION_TABS,
-  DEFAULT_CLIENT_ACTION_TAB,
   CLIENT_ACTIONS_PATH,
   clientActionFilter,
   clientActionsLink,
   clientActionsStoreKey,
   HIGHLIGHT_CLASS,
-  isClientActionTab,
   ptWeekRange,
   type ClientActionTab,
 } from "./clientActions";
 import { usePTDate } from "./usePTDate";
 import { QuickDirection } from "./QuickDirection";
+import { ActionDrawer } from "./ActionDrawer";
+import {
+  clientActionsListKey,
+  neighbourIds,
+  useClientActionsState,
+} from "./clientActionsState";
 
 /** Noon PT-ish instant for a PT date string (safe for date math on any DST day). */
 const ptNoon = (d: string) => new Date(`${d}T20:00:00Z`);
@@ -49,15 +59,18 @@ const tabHint = (tab: ClientActionTab, ptDate: string) => {
 
 /** Client Actions: a thin view over existing eos_commitments (manual entry only). */
 export const ClientActionsPage = () => {
-  const [params, setParams] = useSearchParams();
-  const rawTab = params.get("tab");
-  const tab: ClientActionTab = isClientActionTab(rawTab)
-    ? rawTab
-    : DEFAULT_CLIENT_ACTION_TAB;
-  const companyId = params.get("company_id");
-  // Set by the create redirect so the just-saved row is highlighted.
-  const newId = params.get("highlight");
-  const unclassified = params.get("unclassified") === "1" && tab !== "waiting";
+  const {
+    tab,
+    companyId,
+    unclassified,
+    status,
+    item,
+    highlight: newId,
+    setClientActionsParams,
+    openItem,
+    replaceItem,
+    closeItem,
+  } = useClientActionsState();
   const { identity, isPending: idPending } = useGetIdentity();
   // PT date drives week/overdue bounds; recomputed at PT midnight and on focus.
   const ptDate = usePTDate();
@@ -68,25 +81,30 @@ export const ClientActionsPage = () => {
         companyId,
         now: ptNoon(ptDate),
         unclassified,
+        status,
       }),
-    [tab, identity?.id, companyId, ptDate, unclassified],
+    [tab, identity?.id, companyId, ptDate, unclassified, status],
   );
-  const toggleUnclassified = () => {
-    const p = new URLSearchParams(params);
-    if (unclassified) p.delete("unclassified");
-    else p.set("unclassified", "1");
-    setParams(p, { replace: true });
-  };
-  const setTab = (t: ClientActionTab) => {
-    const p = new URLSearchParams(params);
-    p.set("tab", t);
-    setParams(p, { replace: true });
-  };
-  const clearCompany = () => {
-    const p = new URLSearchParams(params);
-    p.delete("company_id");
-    setParams(p, { replace: true });
-  };
+  // Nit A: every list-changing control goes through the single writer, which drops ?highlight=.
+  const toggleUnclassified = () =>
+    setClientActionsParams({ unclassified: !unclassified });
+  const setTab = (t: ClientActionTab) => setClientActionsParams({ tab: t });
+  const clearCompany = () => setClientActionsParams({ company_id: null });
+  const clearStatus = () => setClientActionsParams({ status: null });
+  // Prev/Next come from the loaded page; the drawer itself loads by getOne.
+  const [pageIds, setPageIds] = useState<string[]>([]);
+  const { prev, next } = neighbourIds(pageIds, item);
+  const lastItem = useRef<string | null>(null);
+  if (item) lastItem.current = item;
+  const focusOpener = useCallback(() => {
+    const id = lastItem.current;
+    if (!id) return true;
+    return (
+      document.querySelector<HTMLElement>(
+        `[data-open-item="${CSS.escape(id)}"]`,
+      ) ?? true
+    );
+  }, []);
   return (
     <div
       className="flex flex-col gap-2 p-2 min-w-0 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-2"
@@ -116,6 +134,7 @@ export const ClientActionsPage = () => {
       <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
         <span>{tabHint(tab, ptDate)}</span>
         {companyId && <CompanyChip id={companyId} onClear={clearCompany} />}
+        {status && <StatusChip status={status} onClear={clearStatus} />}
         {tab !== "waiting" && (
           <UnclassifiedChip
             tab={tab}
@@ -145,7 +164,11 @@ export const ClientActionsPage = () => {
         </p>
       ) : (
         <List
-          key={`${tab}:${companyId ?? ""}:${ptDate}:${unclassified ? "u" : ""}:${newId ?? ""}`}
+          // D1: item and view are never in the key, so opening the drawer never remounts the List.
+          key={clientActionsListKey(
+            { tab, companyId, unclassified, status, highlight: newId },
+            ptDate,
+          )}
           resource="eos_commitments"
           title="Client Actions"
           // With ?highlight=, ignore this tab's stored filter/sort/page (they beat the sort
@@ -203,8 +226,10 @@ export const ClientActionsPage = () => {
             </TopToolbar>
           }
         >
+          <ListIdsReporter onIds={setPageIds} />
           <EosListBody
             highlightId={newId}
+            onOpenItem={openItem}
             bulkFields={COMMITMENT_BULK}
             cardActions={() => (
               <>
@@ -214,7 +239,11 @@ export const ClientActionsPage = () => {
             )}
           >
             <DataTable
-              rowClick="edit"
+              // v1d U1: a row click opens the detail drawer (?item=), not the edit page.
+              rowClick={(id) => {
+                openItem(id);
+                return false;
+              }}
               rowClassName={(r) =>
                 newId != null && String(r.id) === newId
                   ? `bg-primary/10 font-medium ${HIGHLIGHT_CLASS}`
@@ -222,7 +251,9 @@ export const ClientActionsPage = () => {
               }
               bulkActionsToolbar={<EosBulkToolbar fields={COMMITMENT_BULK} />}
             >
-              <DataTable.Col source="title" />
+              <DataTable.Col source="title">
+                <OpenItemTitle onOpen={openItem} />
+              </DataTable.Col>
               {CommonCols()}
               <DataTable.Col source="status" />
               <DataTable.Col source="direction" label="Direction">
@@ -239,10 +270,76 @@ export const ClientActionsPage = () => {
           </EosListBody>
         </List>
       )}
+      <ActionDrawer
+        item={item}
+        onClose={closeItem}
+        prevId={prev}
+        nextId={next}
+        onNavigate={replaceItem}
+        finalFocus={focusOpener}
+      />
     </div>
   );
 };
 ClientActionsPage.path = CLIENT_ACTIONS_PATH;
+
+/** Reports the loaded page's ids (Prev/Next) without making the List depend on the drawer. */
+const ListIdsReporter = ({ onIds }: { onIds: (ids: string[]) => void }) => {
+  const { data } = useListContext();
+  const joined = (data ?? []).map((r: any) => String(r.id)).join(",");
+  useEffect(() => {
+    onIds(joined ? joined.split(",") : []);
+  }, [joined, onIds]);
+  return null;
+};
+
+/** Title cell: a real button, so rows are keyboard-reachable and focus can return here (D3). */
+const OpenItemTitle = ({
+  onOpen,
+}: {
+  label?: string;
+  onOpen: (id: string | number) => void;
+}) => {
+  const record = useRecordContext();
+  if (!record) return null;
+  return (
+    <button
+      type="button"
+      data-open-item={String(record.id)}
+      data-testid="client-action-open"
+      className="text-left font-medium underline-offset-2 hover:underline min-h-8 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 rounded-sm"
+      onClick={(e) => {
+        e.stopPropagation();
+        onOpen(record.id);
+      }}
+    >
+      {record.title}
+    </button>
+  );
+};
+
+const StatusChip = ({
+  status,
+  onClear,
+}: {
+  status: string;
+  onClear: () => void;
+}) => (
+  <span
+    className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-foreground"
+    data-testid="client-actions-status"
+  >
+    Status: {status.replace(/_/g, " ")}
+    <button
+      type="button"
+      aria-label="Clear status filter"
+      className="p-1 -m-1 min-h-8 min-w-8 inline-flex items-center justify-center"
+      onClick={onClear}
+    >
+      <X className="size-3" />
+    </button>
+  </span>
+);
 
 /** Count of open, blank-direction rows in the current tab (+ account); toggles the filter. */
 const UnclassifiedChip = ({

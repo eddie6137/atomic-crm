@@ -25,8 +25,11 @@ export const EosListBody = ({
   bulkFields,
   cardActions,
   highlightId,
+  onOpenItem,
 }: {
   children: ReactNode;
+  /** v1d U1: a card tap opens the detail drawer (instead of navigating to edit). */
+  onOpenItem?: (id: string | number) => void;
   /** Record id to highlight and scroll into view (cards and table rows). */
   highlightId?: string | null;
   /** Controls rendered under a card, outside its link (e.g. quick-classify). */
@@ -64,6 +67,55 @@ export const EosListBody = ({
   if (!data?.length)
     return <p className="text-sm text-muted-foreground p-2">No results</p>;
   const selected = new Set(selectedIds ?? []);
+  // Card summary markup, shared by the drawer button (v1d) and the edit link.
+  const cardSummary = (r: any) => (
+    <>
+      <span className="block font-medium break-words">{r.title ?? r.name}</span>
+      <span className="block text-sm text-muted-foreground break-words">
+        {r.company_id ? (
+          <ReferenceField
+            source="company_id"
+            reference="companies"
+            link={false}
+          />
+        ) : (
+          "No account"
+        )}
+        {"owner_sales_id" in r && (
+          <span data-testid="eos-card-owner">
+            {" · "}
+            {r.owner_sales_id ? (
+              <ReferenceField
+                source="owner_sales_id"
+                reference="sales"
+                link={false}
+                render={({ referenceRecord }) =>
+                  referenceRecord
+                    ? `${referenceRecord.first_name} ${referenceRecord.last_name}`
+                    : "—"
+                }
+              />
+            ) : (
+              "No owner"
+            )}
+          </span>
+        )}
+      </span>
+      <span className="flex flex-wrap gap-1 mt-2 items-center text-xs">
+        {r.status && (
+          <Badge variant="outline">{String(r.status).replace(/_/g, " ")}</Badge>
+        )}
+        {r.priority && <Badge variant="secondary">{r.priority}</Badge>}
+        {r.quarter && <Badge variant="secondary">{r.quarter}</Badge>}
+        {r.direction === "from_client" && (
+          <Badge variant="secondary">waiting on client</Badge>
+        )}
+        {r.needs_review && <Badge variant="destructive">needs review</Badge>}
+        {dateSource && r[dateSource] !== undefined && <DueField />}
+        {extra?.(r)}
+      </span>
+    </>
+  );
   return (
     <div
       className="flex flex-col gap-2 w-full min-w-0 pb-[calc(10rem+env(safe-area-inset-bottom))]"
@@ -120,63 +172,28 @@ export const EosListBody = ({
                   : undefined
               }
             >
-              <Link
-                to={createPath({ resource: resource!, id: r.id, type: "edit" })}
-                className="block p-3 pb-2 no-underline text-foreground min-w-0"
-              >
-                <div className="font-medium break-words">
-                  {r.title ?? r.name}
-                </div>
-                <div className="text-sm text-muted-foreground break-words">
-                  {r.company_id ? (
-                    <ReferenceField
-                      source="company_id"
-                      reference="companies"
-                      link={false}
-                    />
-                  ) : (
-                    "No account"
-                  )}
-                  {"owner_sales_id" in r && (
-                    <span data-testid="eos-card-owner">
-                      {" · "}
-                      {r.owner_sales_id ? (
-                        <ReferenceField
-                          source="owner_sales_id"
-                          reference="sales"
-                          link={false}
-                          render={({ referenceRecord }) =>
-                            referenceRecord
-                              ? `${referenceRecord.first_name} ${referenceRecord.last_name}`
-                              : "—"
-                          }
-                        />
-                      ) : (
-                        "No owner"
-                      )}
-                    </span>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-1 mt-2 items-center text-xs">
-                  {r.status && (
-                    <Badge variant="outline">
-                      {String(r.status).replace(/_/g, " ")}
-                    </Badge>
-                  )}
-                  {r.priority && (
-                    <Badge variant="secondary">{r.priority}</Badge>
-                  )}
-                  {r.quarter && <Badge variant="secondary">{r.quarter}</Badge>}
-                  {r.direction === "from_client" && (
-                    <Badge variant="secondary">waiting on client</Badge>
-                  )}
-                  {r.needs_review && (
-                    <Badge variant="destructive">needs review</Badge>
-                  )}
-                  {dateSource && r[dateSource] !== undefined && <DueField />}
-                  {extra?.(r)}
-                </div>
-              </Link>
+              {onOpenItem ? (
+                <button
+                  type="button"
+                  data-open-item={String(r.id)}
+                  data-testid="eos-card-open"
+                  onClick={() => onOpenItem(r.id)}
+                  className="block w-full text-left p-3 pb-2 text-foreground min-w-0 rounded-t-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                >
+                  {cardSummary(r)}
+                </button>
+              ) : (
+                <Link
+                  to={createPath({
+                    resource: resource!,
+                    id: r.id,
+                    type: "edit",
+                  })}
+                  className="block p-3 pb-2 no-underline text-foreground min-w-0"
+                >
+                  {cardSummary(r)}
+                </Link>
+              )}
               {cardActions && (
                 <div
                   className="px-3 pb-3 flex items-center gap-2 text-xs"

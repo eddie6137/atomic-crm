@@ -249,11 +249,11 @@ export const DateInput = (props: DateInputProps) => {
             }}
             onClick={(e) => {
               callerOnClick?.(e);
-              if (
-                !disabled &&
-                !readOnly &&
-                opensCalendarOnClick(lastPointerType.current)
-              )
+              const pointerType = lastPointerType.current;
+              // Nit C (CE 2026-11-08): consume the pointer type per click, so a later
+              // keyboard-generated click (no pointerdown) never reuses a stale "mouse".
+              lastPointerType.current = null;
+              if (!disabled && !readOnly && opensCalendarOnClick(pointerType))
                 setOpen(true);
             }}
             className={cn(

@@ -1,7 +1,7 @@
 import { CoreAdminContext, Form } from "ra-core";
 import { useWatch } from "react-hook-form";
 import { describe, expect, it } from "vitest";
-import { page } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 
 import { testI18nProvider } from "@/components/atomic-crm/providers/commons/i18nProvider";
@@ -94,5 +94,25 @@ describe("<DateInput> calendar popover", () => {
     await expect
       .element(screen.getByTestId("date-picker-calendar"))
       .toBeVisible();
+  });
+  it("nit C: a later click with no pointerdown (keyboard/synthetic) does not reuse the last mouse pointerType", async () => {
+    const screen = await renderInput({});
+    const input = document.querySelector(
+      "input[type=date]",
+    ) as HTMLInputElement;
+    await page.elementLocator(input).click();
+    await expect
+      .element(screen.getByTestId("date-picker-calendar"))
+      .toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await expect
+      .element(screen.getByTestId("date-picker-calendar"))
+      .not.toBeInTheDocument();
+    // Synthetic click: no pointerdown precedes it, as with keyboard activation.
+    input.click();
+    await new Promise((r) => setTimeout(r, 200));
+    expect(
+      document.querySelector("[data-testid=date-picker-calendar]"),
+    ).toBeNull();
   });
 });

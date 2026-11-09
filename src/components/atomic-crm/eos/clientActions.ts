@@ -3,6 +3,7 @@
 import {
   addDays,
   COMMITMENT_OPEN,
+  COMMITMENT_STATUSES,
   inFilter,
   todayPT,
   weekStart,
@@ -47,10 +48,19 @@ export const clientActionFilter = (
     companyId?: string | number | null;
     /** Narrow to rows with no direction yet. Ignored on Waiting (always from_client). */
     unclassified?: boolean;
+    /**
+     * v1d D2 (list view only): one status that REPLACES the open set, so
+     * `status=completed` lists completed rows and `status=blocked` is a subset of open.
+     */
+    status?: string | null;
   } = {},
 ): Record<string, unknown> | null => {
   const now = opts.now ?? new Date();
   const base: Record<string, unknown> = activeActionFilter();
+  if (opts.status && COMMITMENT_STATUSES.includes(opts.status)) {
+    delete base["status@in"];
+    base.status = opts.status;
+  }
   if (opts.companyId != null && opts.companyId !== "")
     base.company_id = opts.companyId;
   if (opts.unclassified && tab !== "waiting") base["direction@is"] = null;

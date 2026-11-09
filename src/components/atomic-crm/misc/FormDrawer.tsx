@@ -1,5 +1,5 @@
 import { XIcon } from "lucide-react";
-import { type ReactNode, useRef } from "react";
+import { type ComponentProps, type ReactNode, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -8,10 +8,14 @@ import {
   DrawerVirtualKeyboardProvider,
 } from "@/components/ui/drawer";
 
+type DrawerContentProps = ComponentProps<typeof DrawerContent>;
+
 export interface FormDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   children: ReactNode;
+  /** Where focus goes on close (Base UI Popup finalFocus); default: the previous focus. */
+  finalFocus?: DrawerContentProps["finalFocus"];
 }
 
 /**
@@ -28,6 +32,7 @@ export const FormDrawer = ({
   open,
   onOpenChange,
   children,
+  finalFocus,
 }: FormDrawerProps) => {
   const popupRef = useRef<HTMLDivElement>(null);
 
@@ -48,6 +53,7 @@ export const FormDrawer = ({
         <DrawerContent
           ref={popupRef}
           initialFocus={focusField}
+          finalFocus={finalFocus}
           className="h-dvh max-h-none data-[swipe-direction=down]:rounded-t-none pb-(--drawer-keyboard-inset)"
           aria-describedby={undefined}
         >
