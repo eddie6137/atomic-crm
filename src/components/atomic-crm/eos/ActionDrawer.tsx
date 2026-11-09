@@ -480,7 +480,16 @@ const AutoSubmit = ({
       onBlur={
         onBlurSubmit
           ? (e) => {
-              if (!wrapper.current?.contains(e.relatedTarget as Node | null))
+              // Commit when the typed date input itself loses focus (even if
+              // focus moves to the calendar button in this field), or when
+              // focus leaves the field. Otherwise a later save of another
+              // field refreshes the record and remounts this form, which
+              // would drop the typed value.
+              const fromInput = (e.target as HTMLElement).tagName === "INPUT";
+              if (
+                fromInput ||
+                !wrapper.current?.contains(e.relatedTarget as Node | null)
+              )
                 submit();
             }
           : undefined

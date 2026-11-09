@@ -247,6 +247,34 @@ describe("ActionDrawer (v1d U1)", () => {
     expect(update.mock.calls[0][1].data).toEqual({ due_date: "2026-11-21" });
   });
 
+  it("typed due date commits when focus moves to the calendar button, before another field saves", async () => {
+    const { dp, update } = makeDp();
+    const screen = await renderDrawer(dp);
+    await expect
+      .element(screen.getByTestId("action-drawer-field-due_date"))
+      .toBeVisible();
+    const input = screen
+      .getByTestId("action-drawer-field-due_date")
+      .element()
+      .querySelector("input[type=date]") as HTMLInputElement;
+    await userEvent.fill(input, "2026-11-25");
+    expect(update).not.toHaveBeenCalled();
+    // Focus moves from the date input to the calendar button in the same
+    // field (what Tab does after the last date segment).
+    (
+      screen
+        .getByTestId("action-drawer-field-due_date")
+        .getByRole("button", { name: "Open calendar" })
+        .element() as HTMLButtonElement
+    ).focus();
+    await expect.poll(() => update.mock.calls.length).toBe(1);
+    expect(update.mock.calls[0][1].data).toEqual({ due_date: "2026-11-25" });
+    await screen.getByTestId("action-drawer-priority").selectOptions("high");
+    await expect.poll(() => update.mock.calls.length).toBe(2);
+    expect(update.mock.calls[1][1].data).toEqual({ priority: "high" });
+    expect(update.mock.calls.length).toBe(2);
+  });
+
   it("owner via the picker sends only owner_sales_id", async () => {
     const { dp, update } = makeDp();
     const screen = await renderDrawer(dp);
