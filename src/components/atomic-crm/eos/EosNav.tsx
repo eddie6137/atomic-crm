@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router";
 
 const tabs = [
+  { to: "/client-actions", label: "Client Actions" },
   { to: "/eos", label: "Portfolio" },
   { to: "/eos/hot-topics", label: "Hot Topics" },
   { to: "/eos/l10", label: "L10" },

@@ -11,3 +11,4 @@ export { TeamPage } from "./TeamPage";
 export { eosMilestones } from "./EosMilestones";
 export { ContractSignalsPage } from "./EosContracts";
 export { eosContracts, eosContractObligations } from "./contractResources";
+export { ClientActionsPage } from "./ClientActionsPage";

@@ -39,6 +39,7 @@ import {
   TeamPage,
   L10Page,
   ProposalsPage,
+  ClientActionsPage,
   ScorecardPage,
   eosDeliverables,
   eosMilestones,
@@ -296,6 +297,7 @@ const DesktopAdmin = (
           element={<ContractSignalsPage />}
         />
         <Route path={ProposalsPage.path} element={<ProposalsPage />} />
+        <Route path={ClientActionsPage.path} element={<ClientActionsPage />} />
       </CustomRoutes>
       <Resource name="deals" {...deals} />
       <Resource name="eos_projects" {...eosProjects} />
@@ -398,6 +400,10 @@ const MobileAdmin = (
             element={<ContractSignalsPage />}
           />
           <Route path={ProposalsPage.path} element={<ProposalsPage />} />
+          <Route
+            path={ClientActionsPage.path}
+            element={<ClientActionsPage />}
+          />
         </CustomRoutes>
         <Resource name="eos_projects" {...eosProjects} />
         <Resource name="eos_commitments" {...eosCommitments} />

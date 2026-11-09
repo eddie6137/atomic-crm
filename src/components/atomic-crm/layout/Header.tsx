@@ -25,6 +25,11 @@ const Header = () => {
     currentPath = "/companies";
   } else if (matchPath("/deals/*", location.pathname)) {
     currentPath = "/deals";
+  } else if (
+    matchPath("/client-actions/*", location.pathname) ||
+    matchPath("/eos_commitments/*", location.pathname)
+  ) {
+    currentPath = "/client-actions";
   } else if (matchPath("/eos_projects/*", location.pathname)) {
     currentPath = "/eos_projects";
   } else if (/^\/eos/.test(location.pathname)) {
@@ -82,6 +87,11 @@ const Header = () => {
                     })}
                     to="/deals"
                     isActive={currentPath === "/deals"}
+                  />
+                  <NavigationTab
+                    label="Client Actions"
+                    to="/client-actions"
+                    isActive={currentPath === "/client-actions"}
                   />
                   <NavigationTab
                     label="Projects"

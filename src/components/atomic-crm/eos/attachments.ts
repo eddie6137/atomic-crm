@@ -18,6 +18,9 @@ export type EosAttachment = {
  */
 export const eosBeforeSave = async (data: any, bucket: string = EOS_BUCKET) => {
   const out = { ...data };
+  // Partial updates (e.g. quick-classify sends only {direction}) must not touch
+  // attachments: leave the key absent so the stored references are preserved.
+  const touchesAttachments = "attachments" in out || "new_files" in out;
   const newFiles: any[] = out.new_files ?? [];
   delete out.new_files;
   const existing: EosAttachment[] = Array.isArray(out.attachments)
@@ -48,7 +51,7 @@ export const eosBeforeSave = async (data: any, bucket: string = EOS_BUCKET) => {
       ...(bucket !== EOS_BUCKET ? { bucket } : {}),
     });
   }
-  out.attachments = [...existing, ...uploaded];
+  if (touchesAttachments) out.attachments = [...existing, ...uploaded];
   if ("links" in out) out.links = normalizeLinks(out.links);
   // computed/view-only fields never written
   delete out.revision;
