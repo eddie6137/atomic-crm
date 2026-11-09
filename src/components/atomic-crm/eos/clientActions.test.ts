@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  blockedActionsLink,
+  blockedPortfolioFilter,
+  companyActionsPath,
+  companyTabPath,
+  groupCountByCompany,
   isClientActionsDrawerOpen,
   clientActionFilter,
   matchesClientActionTab,
@@ -259,6 +264,54 @@ describe("CE nit 6: mobile nav hides only for the Client Actions drawer", () => 
     expect(isClientActionsDrawerOpen("/client-actions", "?item=")).toBe(false);
     expect(isClientActionsDrawerOpen("/contacts", "?item=r2")).toBe(false);
     expect(isClientActionsDrawerOpen("/client-actionsx", "?item=r2")).toBe(
+      false,
+    );
+  });
+});
+
+describe("v1d U3 drilldown helpers", () => {
+  it("blocked link: All open, account, list view, status=blocked", () => {
+    expect(blockedActionsLink(9)).toBe(
+      "/client-actions?tab=all&company_id=9&view=list&status=blocked",
+    );
+  });
+  it("blocked portfolio filter replaces the open set with status=blocked, unarchived, no @or", () => {
+    const f = blockedPortfolioFilter();
+    expect(f).toEqual({ "archived_at@is": null, status: "blocked" });
+  });
+  it("groups counts by account and skips rows with no account", () => {
+    const m = groupCountByCompany([
+      { company_id: 8 },
+      { company_id: "8" },
+      { company_id: 9 },
+      { company_id: null },
+    ]);
+    expect([...m.entries()]).toEqual([
+      ["8", 2],
+      ["9", 1],
+    ]);
+  });
+  it("company tab paths carry no query (leaving Actions strips item/view/highlight)", () => {
+    expect(companyActionsPath(8)).toBe("/companies/8/show/actions");
+    expect(companyTabPath(8, "activity")).toBe("/companies/8/show");
+    expect(companyTabPath(8, "eos")).toBe("/companies/8/show/eos");
+    expect(companyTabPath(8, "actions")).toBe("/companies/8/show/actions");
+  });
+  it("company tab has its own list store key", () => {
+    expect(clientActionsStoreKey("all")).toBe("client-actions.all");
+    expect(clientActionsStoreKey("all", null, "company")).toBe(
+      "client-actions.company.all",
+    );
+    expect(clientActionsStoreKey("all", "h1", "company")).toBe(false);
+  });
+  it("mobile nav also hides for the drawer on the company Actions route", () => {
+    expect(
+      isClientActionsDrawerOpen("/companies/8/show/actions", "?item=a1"),
+    ).toBe(true);
+    expect(isClientActionsDrawerOpen("/companies/8/show/eos", "?item=a1")).toBe(
+      false,
+    );
+    expect(isClientActionsDrawerOpen("/companies/8/show/actions", "")).toBe(
       false,
     );
   });

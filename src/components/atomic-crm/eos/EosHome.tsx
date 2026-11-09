@@ -2,6 +2,8 @@ import { useGetList } from "ra-core";
 import { Link } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EosNav } from "./EosNav";
+import { blockedActionsLink, clientActionsLink } from "./clientActions";
+import { blockedCountLabel, usePortfolioBlocked } from "./usePortfolioBlocked";
 import { ContractsDueBlock } from "./EosContracts";
 import {
   idsFilter,
@@ -97,16 +99,34 @@ const OPEN_C = "(open,in_progress,blocked,ambiguous)";
 /** Per-account "nothing dropped" signals (spec §3 defaults). Every count drills into its list. */
 export const AccountSignals = ({ a }: { a: any }) => {
   const today = todayStr();
+  // U3: blocked per account from one shared capped query (no summary column).
+  const blocked = usePortfolioBlocked();
+  const nBlocked = blocked.countFor(a.id);
   const in7 = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Los_Angeles",
   }).format(new Date(Date.now() + 7 * 864e5));
   return (
     <>
       <Stat
-        to={`/eos_commitments?filter=${enc({ company_id: a.id, "status@in": OPEN_C, "due_date@lt": today })}`}
+        to={clientActionsLink("overdue", a.id)}
         label="Overdue commitments"
         n={a.overdue_commitments}
         warn
+        testId="signal-overdue"
+      />
+      <Stat
+        to={blockedActionsLink(a.id)}
+        label="Blocked commitments"
+        n={nBlocked}
+        display={
+          blocked.isPending
+            ? "…"
+            : blocked.error
+              ? "?"
+              : blockedCountLabel(nBlocked, blocked.capped)
+        }
+        warn
+        testId="signal-blocked"
       />
       <Stat
         to={`/eos_issues?filter=${enc({ company_id: a.id, "status@in": "(open,ids)" })}`}
@@ -133,9 +153,10 @@ export const AccountSignals = ({ a }: { a: any }) => {
         warn
       />
       <Stat
-        to={`/eos_commitments?filter=${enc({ company_id: a.id, "status@in": OPEN_C })}`}
+        to={clientActionsLink("all", a.id)}
         label="Open commitments"
         n={a.open_commitments}
+        testId="signal-open"
       />
       <Stat
         to={`/eos_projects?filter=${enc({ company_id: a.id })}`}
@@ -163,17 +184,26 @@ const Stat = ({
   label,
   n,
   warn,
+  display,
+  testId,
 }: {
   to: string;
   label: string;
   n: number;
   warn?: boolean;
+  display?: string;
+  testId?: string;
 }) => (
-  <Link to={to} className="rounded border p-2 no-underline hover:bg-muted">
+  <Link
+    to={to}
+    className="rounded border p-2 no-underline hover:bg-muted"
+    data-testid={testId}
+    data-count={testId ? String(n ?? 0) : undefined}
+  >
     <div
       className={`text-2xl font-semibold ${warn && n > 0 ? "text-red-600" : ""}`}
     >
-      {n}
+      {display ?? n}
     </div>
     <div className="text-muted-foreground">{label}</div>
   </Link>

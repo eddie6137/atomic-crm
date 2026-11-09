@@ -113,10 +113,15 @@ export const queryRows = (
     sort,
   );
 
-export const makeFakeProvider = (rows: FakeRow[]) => {
+export const makeFakeProvider = (
+  rows: FakeRow[],
+  extra: Record<string, Array<Record<string, any>>> = {},
+) => {
   const getList = vi.fn(async (resource: string, p: any) => {
-    if (resource !== "eos_commitments") return { data: [], total: 0 };
-    const all = queryRows(rows, p.filter ?? {}, p.sort);
+    const table =
+      resource === "eos_commitments" ? rows : (extra[resource] ?? null);
+    if (!table) return { data: [], total: 0 };
+    const all = queryRows(table as FakeRow[], p.filter ?? {}, p.sort);
     const { page = 1, perPage = 25 } = p.pagination ?? {};
     return {
       data: all.slice((page - 1) * perPage, page * perPage),
@@ -125,7 +130,12 @@ export const makeFakeProvider = (rows: FakeRow[]) => {
   });
   const dp = {
     getList,
-    getOne: async (_r: string, p: any) => {
+    getOne: async (r: string, p: any) => {
+      if (r !== "eos_commitments") {
+        const x = (extra[r] ?? []).find((e) => String(e.id) === String(p.id));
+        if (!x) throw new Error("Not found");
+        return { data: x };
+      }
       const hit = rows.find((r) => r.id === String(p.id));
       if (!hit) throw new Error("Not found");
       return { data: { ...hit, attachments: [], links: [], raw: null } };
@@ -206,4 +216,32 @@ export const mixedRows = (realNow: Date = new Date()): FakeRow[] => {
     waiting("w4", "completed"),
   );
   return rows;
+};
+
+/**
+ * Test-only mirror of the `eos_account_summary` view's commitment columns
+ * (v1b migration): open set, unarchived; overdue = due_date < PT today.
+ */
+export const accountSummaryRows = (
+  rows: FakeRow[],
+  companies: Array<{ id: number; name: string }>,
+  ptToday: string,
+) => {
+  const OPEN = ["open", "in_progress", "blocked", "ambiguous"];
+  const live = (r: FakeRow, id: number) =>
+    r.company_id === id && r.archived_at == null && OPEN.includes(r.status);
+  return companies.map((c) => ({
+    id: c.id,
+    name: c.name,
+    open_commitments: rows.filter((r) => live(r, c.id)).length,
+    overdue_commitments: rows.filter(
+      (r) => live(r, c.id) && r.due_date != null && r.due_date < ptToday,
+    ).length,
+    open_projects: 0,
+    open_issues: 0,
+    deliverables_due_7d: 0,
+    stale_projects: 0,
+    off_track_rocks: 0,
+    missing_owner_or_date: 0,
+  }));
 };

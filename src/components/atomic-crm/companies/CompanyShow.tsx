@@ -1,4 +1,6 @@
 import { CompanyActionsRollup, CompanyEosTab } from "../eos/CompanyEosTab";
+import { ClientActionsView } from "../eos/ClientActionsView";
+import { COMPANY_ACTIONS_TAB, companyTabPath } from "../eos/clientActions";
 import { RelationshipBadge } from "./CompanyRelationship";
 import { ReferenceManyField } from "@/components/admin/reference-many-field";
 import { SortButton } from "@/components/admin/sort-button";
@@ -62,6 +64,9 @@ export const CompanyShow = () => {
 const CompanyShowContentMobile = () => {
   const translate = useTranslate();
   const { record, isPending } = useShowContext<Company>();
+  // U3: the phone layout has no tab strip; /show/actions renders the account's
+  // Client Actions (list/board/drawer) under the header instead of the info cards.
+  const actionsMatch = useMatch(`/companies/:id/show/${COMPANY_ACTIONS_TAB}`);
   if (isPending || !record) return null;
 
   return (
@@ -86,13 +91,31 @@ const CompanyShowContentMobile = () => {
             </div>
           </div>
         </div>
-        <div className="mb-6">
-          <CompanyActionsRollup companyId={record.id} />
-        </div>
-        <CompanyInfo record={record} />
-        <AddressInfo record={record} />
-        <ContextInfo record={record} />
-        <AdditionalInfo record={record} />
+        {actionsMatch ? (
+          <div
+            className="pb-[calc(5rem+env(safe-area-inset-bottom))]"
+            data-testid="company-actions-tab"
+          >
+            <Link
+              to={`/companies/${record.id}/show`}
+              className="text-sm underline inline-flex items-center min-h-11 mb-1"
+              data-testid="company-actions-back"
+            >
+              Back to account
+            </Link>
+            <ClientActionsView lockedCompanyId={record.id} />
+          </div>
+        ) : (
+          <>
+            <div className="mb-6">
+              <CompanyActionsRollup companyId={record.id} />
+            </div>
+            <CompanyInfo record={record} />
+            <AddressInfo record={record} />
+            <ContextInfo record={record} />
+            <AdditionalInfo record={record} />
+          </>
+        )}
       </MobileContent>
     </>
   );
@@ -108,12 +131,9 @@ const CompanyShowContent = () => {
   const currentTab = tabMatch?.params?.tab || "activity";
 
   const handleTabChange = (value: string) => {
-    if (value === currentTab) return;
-    if (value === "activity") {
-      navigate(`/companies/${record?.id}/show`);
-      return;
-    }
-    navigate(`/companies/${record?.id}/show/${value}`);
+    if (value === currentTab || record?.id == null) return;
+    // U3 (Q5): the target path has no query, so leaving Actions strips item/view/highlight.
+    navigate(companyTabPath(record.id, value));
   };
 
   if (isPending || !record) return null;
@@ -133,8 +153,12 @@ const CompanyShowContent = () => {
                 className="self-center"
               />
             </div>
-            <Tabs defaultValue={currentTab} onValueChange={handleTabChange}>
-              <TabsList className="grid w-full grid-cols-4">
+            <Tabs value={currentTab} onValueChange={handleTabChange}>
+              {/* U3: 4 or 5 tabs (Deals is conditional); scroll instead of a fixed grid. */}
+              <TabsList
+                className="w-full justify-start overflow-x-auto"
+                data-testid="company-tabs"
+              >
                 <TabsTrigger value="activity">
                   {translate("crm.common.activity")}
                 </TabsTrigger>
@@ -153,6 +177,12 @@ const CompanyShowContent = () => {
                   </TabsTrigger>
                 ) : null}
                 <TabsTrigger value="eos">EOS</TabsTrigger>
+                <TabsTrigger
+                  value={COMPANY_ACTIONS_TAB}
+                  data-testid="company-tab-actions"
+                >
+                  Actions
+                </TabsTrigger>
               </TabsList>
               <TabsContent value="activity" className="pt-2">
                 <ActivityLog companyId={record.id} context="company" />
@@ -197,6 +227,13 @@ const CompanyShowContent = () => {
               </TabsContent>
               <TabsContent value="eos">
                 <CompanyEosTab companyId={record.id} />
+              </TabsContent>
+              <TabsContent
+                value={COMPANY_ACTIONS_TAB}
+                className="pt-2 min-w-0"
+                data-testid="company-actions-tab"
+              >
+                <ClientActionsView lockedCompanyId={record.id} />
               </TabsContent>
             </Tabs>
           </CardContent>

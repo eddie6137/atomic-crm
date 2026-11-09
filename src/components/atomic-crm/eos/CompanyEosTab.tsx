@@ -3,11 +3,13 @@ import { Link } from "react-router";
 import { Badge } from "@/components/ui/badge";
 import { AccountSignals } from "./EosHome";
 import {
-  activeActionFilter,
+  blockedActionsLink,
   CLIENT_ACTION_TABS,
   clientActionsLink,
+  companyActionsPath,
   sectionCount,
 } from "./clientActions";
+import { blockedCountLabel, usePortfolioBlocked } from "./usePortfolioBlocked";
 import {
   COMMITMENT_OPEN,
   DELIVERABLE_OPEN,
@@ -138,7 +140,7 @@ export const CompanyEosTab = ({
             <Link
               to={
                 s.resource === "eos_commitments"
-                  ? `/eos_commitments?filter=${encodeURIComponent(JSON.stringify({ company_id: companyId, ...activeActionFilter() }))}`
+                  ? companyActionsPath(companyId)
                   : `/${s.resource}?filter=${encodeURIComponent(JSON.stringify({ company_id: companyId }))}`
               }
               className="text-sm underline mt-1 inline-block"
@@ -186,51 +188,79 @@ const AccountActionsRollup = ({
   a: any;
   isPending?: boolean;
   error?: boolean;
-}) => (
-  <div
-    className="rounded-lg border p-3 flex flex-col gap-2 min-w-0"
-    data-testid="company-client-actions"
-  >
-    <div className="flex flex-wrap items-baseline justify-between gap-2">
-      <h6 className="font-semibold">Client actions</h6>
-      {isPending ? (
-        <span
-          className="text-sm text-muted-foreground"
-          role="status"
-          data-testid="company-client-actions-loading"
-        >
-          Loading…
-        </span>
-      ) : error ? (
-        <span
-          className="text-sm text-red-600"
-          data-testid="company-client-actions-error"
-        >
-          Could not load counts
-        </span>
-      ) : (
-        <span className="text-sm text-muted-foreground">
-          <b className="text-foreground">{a.open_commitments ?? 0}</b> open ·{" "}
-          <b className={a.overdue_commitments ? "text-red-600" : ""}>
-            {a.overdue_commitments ?? 0}
-          </b>{" "}
-          overdue
-        </span>
-      )}
-    </div>
-    <div className="flex flex-wrap gap-2 text-sm">
-      {CLIENT_ACTION_TABS.map((t) => (
+}) => {
+  const blocked = usePortfolioBlocked();
+  const nBlocked = blocked.countFor(companyId);
+  return (
+    <div
+      className="rounded-lg border p-3 flex flex-col gap-2 min-w-0"
+      data-testid="company-client-actions"
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h6 className="font-semibold">Client actions</h6>
+        {isPending ? (
+          <span
+            className="text-sm text-muted-foreground"
+            role="status"
+            data-testid="company-client-actions-loading"
+          >
+            Loading…
+          </span>
+        ) : error ? (
+          <span
+            className="text-sm text-red-600"
+            data-testid="company-client-actions-error"
+          >
+            Could not load counts
+          </span>
+        ) : (
+          <span className="text-sm text-muted-foreground">
+            <b className="text-foreground">{a.open_commitments ?? 0}</b> open ·{" "}
+            <b className={a.overdue_commitments ? "text-red-600" : ""}>
+              {a.overdue_commitments ?? 0}
+            </b>{" "}
+            overdue ·{" "}
+            <Link
+              to={blockedActionsLink(companyId)}
+              className="underline-offset-2 hover:underline"
+              data-testid="company-client-actions-blocked"
+              data-count={blocked.isPending ? "" : String(nBlocked)}
+            >
+              <b
+                className={nBlocked ? "text-amber-700 dark:text-amber-400" : ""}
+              >
+                {blocked.isPending
+                  ? "…"
+                  : blocked.error
+                    ? "?"
+                    : blockedCountLabel(nBlocked, blocked.capped)}
+              </b>{" "}
+              blocked
+            </Link>
+          </span>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-2 text-sm">
+        {CLIENT_ACTION_TABS.map((t) => (
+          <Link
+            key={t.id}
+            to={clientActionsLink(t.id, companyId)}
+            className="rounded-full border px-3 py-1 min-h-9 inline-flex items-center"
+          >
+            {t.label}
+            {t.id === "overdue" && !isPending && !error
+              ? ` (${a.overdue_commitments ?? 0})`
+              : ""}
+          </Link>
+        ))}
         <Link
-          key={t.id}
-          to={clientActionsLink(t.id, companyId)}
-          className="rounded-full border px-3 py-1 min-h-9 inline-flex items-center"
+          to={companyActionsPath(companyId)}
+          className="rounded-full border px-3 py-1 min-h-9 inline-flex items-center font-medium"
+          data-testid="company-client-actions-open-tab"
         >
-          {t.label}
-          {t.id === "overdue" && !isPending && !error
-            ? ` (${a.overdue_commitments ?? 0})`
-            : ""}
+          All actions for this account
         </Link>
-      ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};

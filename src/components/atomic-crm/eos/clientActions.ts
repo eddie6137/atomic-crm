@@ -160,16 +160,59 @@ export const CLIENT_ACTIONS_PATH = "/client-actions";
 /** True when the Client Actions drawer is open: /client-actions with a non-empty ?item=. */
 export const isClientActionsDrawerOpen = (pathname: string, search: string) =>
   (pathname === CLIENT_ACTIONS_PATH ||
-    pathname.startsWith(`${CLIENT_ACTIONS_PATH}/`)) &&
+    pathname.startsWith(`${CLIENT_ACTIONS_PATH}/`) ||
+    /^\/companies\/[^/]+\/show\/actions\/?$/.test(pathname)) &&
   !!new URLSearchParams(search).get("item");
 export const clientActionsLink = (
   tab: ClientActionTab,
   companyId?: string | number | null,
+  extra: { view?: "list" | "board"; status?: string } = {},
 ) => {
   const p = new URLSearchParams({ tab });
   if (companyId != null) p.set("company_id", String(companyId));
+  if (extra.view) p.set("view", extra.view);
+  if (extra.status) p.set("status", extra.status);
   return `${CLIENT_ACTIONS_PATH}?${p.toString()}`;
 };
+
+/** U3 Portfolio "blocked" drilldown: All open, the account, list view, status=blocked (N2: chip is list-only). */
+export const blockedActionsLink = (companyId: string | number) =>
+  clientActionsLink("all", companyId, { view: "list", status: "blocked" });
+
+/** U3: one getList for every account's blocked count (no N+1), grouped client-side. */
+export const BLOCKED_PORTFOLIO_CAP = 500;
+export const blockedPortfolioFilter = () => {
+  const f: Record<string, unknown> = activeActionFilter();
+  delete f["status@in"];
+  f.status = "blocked";
+  return f;
+};
+export const groupCountByCompany = (
+  rows: ReadonlyArray<{ company_id?: string | number | null }>,
+) => {
+  const m = new Map<string, number>();
+  for (const r of rows) {
+    if (r.company_id == null) continue;
+    const k = String(r.company_id);
+    m.set(k, (m.get(k) ?? 0) + 1);
+  }
+  return m;
+};
+
+/** Company page Actions tab (U3, Q5): path-routed so it never collides with ?tab=. */
+export const COMPANY_ACTIONS_TAB = "actions";
+export const companyActionsPath = (companyId: string | number) =>
+  `/companies/${companyId}/show/${COMPANY_ACTIONS_TAB}`;
+
+/**
+ * Target of a company-page tab change (Q5). The path carries no query, so leaving
+ * the Actions tab always strips its drawer/view params (item, view, highlight)
+ * and its list params; they never leak into Activity/Contacts/Deals/EOS.
+ */
+export const companyTabPath = (companyId: string | number, nextTab: string) =>
+  nextTab === "activity"
+    ? `/companies/${companyId}/show`
+    : `/companies/${companyId}/show/${nextTab}`;
 
 /** Honest count label: never present a capped page as the full total. */
 export const sectionCount = (shown: number, total?: number, cap = 50) =>
@@ -222,7 +265,13 @@ export const HIGHLIGHT_CLASS = "eos-highlight";
 export const clientActionsStoreKey = (
   tab: string,
   highlightId?: string | null,
-) => (highlightId ? (false as const) : `client-actions.${tab}`);
+  scope: "global" | "company" = "global",
+) =>
+  highlightId
+    ? (false as const)
+    : scope === "company"
+      ? `client-actions.company.${tab}`
+      : `client-actions.${tab}`;
 
 /**
  * Where an edit lands: back on All open with the row highlighted while it is still open;
