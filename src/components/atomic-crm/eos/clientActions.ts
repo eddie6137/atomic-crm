@@ -166,18 +166,31 @@ export const isClientActionsDrawerOpen = (pathname: string, search: string) =>
 export const clientActionsLink = (
   tab: ClientActionTab,
   companyId?: string | number | null,
-  extra: { view?: "list" | "board"; status?: string } = {},
+  extra: { view?: "list" | "board"; status?: string; drill?: boolean } = {},
 ) => {
   const p = new URLSearchParams({ tab });
   if (companyId != null) p.set("company_id", String(companyId));
   if (extra.view) p.set("view", extra.view);
   if (extra.status) p.set("status", extra.status);
+  if (extra.drill) p.set("drill", "1");
   return `${CLIENT_ACTIONS_PATH}?${p.toString()}`;
 };
 
+/**
+ * U3 CE MF1: a count badge's target. `drill=1` makes the URL the whole filter: the
+ * List ignores this tab's saved q/owner/priority/sort/page (storeKey=false, as with
+ * ?highlight=) and never writes to them, so badge = list while saved filters survive.
+ * The single writer drops `drill` on the first list change (tab, account, status, …).
+ */
+export const drilldownLink = (
+  tab: ClientActionTab,
+  companyId: string | number,
+  extra: { view?: "list" | "board"; status?: string } = {},
+) => clientActionsLink(tab, companyId, { ...extra, drill: true });
+
 /** U3 Portfolio "blocked" drilldown: All open, the account, list view, status=blocked (N2: chip is list-only). */
 export const blockedActionsLink = (companyId: string | number) =>
-  clientActionsLink("all", companyId, { view: "list", status: "blocked" });
+  drilldownLink("all", companyId, { view: "list", status: "blocked" });
 
 /** U3: one getList for every account's blocked count (no N+1), grouped client-side. */
 export const BLOCKED_PORTFOLIO_CAP = 500;
@@ -261,13 +274,17 @@ export const commitmentCreatedPath = (id: unknown) =>
 /** Class put on the highlighted Client Actions row or card; used to scroll it into view. */
 export const HIGHLIGHT_CLASS = "eos-highlight";
 
-/** List storeKey for a Client Actions tab; false (no stored params) while highlighting a row. */
+/**
+ * List storeKey for a Client Actions tab; false (no stored params read or written)
+ * while highlighting a row or on a drilldown arrival (`drill=1`, CE MF1).
+ */
 export const clientActionsStoreKey = (
   tab: string,
   highlightId?: string | null,
   scope: "global" | "company" = "global",
+  drill = false,
 ) =>
-  highlightId
+  highlightId || drill
     ? (false as const)
     : scope === "company"
       ? `client-actions.company.${tab}`

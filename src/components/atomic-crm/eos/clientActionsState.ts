@@ -21,6 +21,8 @@ export type ClientActionsState = {
   /** Record shown in the detail drawer. */
   item: string | null;
   highlight: string | null;
+  /** U3 CE MF1: arrived from a count badge; the URL is the whole filter. */
+  drill: boolean;
 };
 
 const isStatus = (v: unknown): v is string =>
@@ -44,6 +46,7 @@ export const parseClientActionsParams = (
     view,
     item: params.get("item") || null,
     highlight: params.get("highlight") || null,
+    drill: params.get("drill") === "1",
   };
 };
 
@@ -55,6 +58,7 @@ export type ClientActionsPatch = {
   view?: ClientActionsView;
   item?: string | null;
   highlight?: string | null;
+  drill?: boolean;
 };
 
 /** Keys whose change drops `highlight` (nit A): they all change what the list shows. */
@@ -93,6 +97,7 @@ export const patchClientActionsParams = (
     setOrDelete("view", patch.view === "board" ? "board" : "list");
   if ("item" in patch) setOrDelete("item", patch.item);
   if ("highlight" in patch) setOrDelete("highlight", patch.highlight);
+  if ("drill" in patch) setOrDelete("drill", patch.drill ? "1" : null);
 
   const after = parseClientActionsParams(p);
   const changed = HIGHLIGHT_DROPPING_KEYS.some((k) => {
@@ -114,6 +119,8 @@ export const patchClientActionsParams = (
     }
   });
   if (changed && !("highlight" in patch)) p.delete("highlight");
+  // CE MF1: any list change ends the drilldown, so the tab's saved params apply again.
+  if (changed && !("drill" in patch)) p.delete("drill");
   if (after.view === "board") p.delete("status");
   return p;
 };
@@ -123,7 +130,7 @@ export const clientActionsListKey = (
   s: Pick<
     ClientActionsState,
     "tab" | "companyId" | "unclassified" | "status" | "highlight"
-  >,
+  > & { drill?: boolean },
   ptDate: string,
 ) =>
   [
@@ -133,6 +140,7 @@ export const clientActionsListKey = (
     s.unclassified ? "u" : "",
     s.status ?? "",
     s.highlight ?? "",
+    s.drill ? "d" : "",
   ].join(":");
 
 /** Prev/Next ids around `item` on the loaded page; null when not on the page or at an end. */

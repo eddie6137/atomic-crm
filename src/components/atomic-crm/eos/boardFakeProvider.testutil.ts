@@ -96,7 +96,15 @@ export const sortRows = <T extends Record<string, any>>(
       // asc → nulls last; desc → nulls first (PostgreSQL defaults)
       if (av == null) return desc ? -1 : 1;
       if (bv == null) return desc ? 1 : -1;
-      const c = String(av) < String(bv) ? -1 : 1;
+      // numeric columns (company_id) sort numerically, like Postgres
+      const c =
+        typeof av === "number" && typeof bv === "number"
+          ? av < bv
+            ? -1
+            : 1
+          : String(av) < String(bv)
+            ? -1
+            : 1;
       return desc ? -c : c;
     }
     return 0;

@@ -2,7 +2,7 @@ import { useGetList } from "ra-core";
 import { Link } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EosNav } from "./EosNav";
-import { blockedActionsLink, clientActionsLink } from "./clientActions";
+import { blockedActionsLink, drilldownLink } from "./clientActions";
 import { blockedCountLabel, usePortfolioBlocked } from "./usePortfolioBlocked";
 import { ContractsDueBlock } from "./EosContracts";
 import {
@@ -108,7 +108,7 @@ export const AccountSignals = ({ a }: { a: any }) => {
   return (
     <>
       <Stat
-        to={clientActionsLink("overdue", a.id)}
+        to={drilldownLink("overdue", a.id)}
         label="Overdue commitments"
         n={a.overdue_commitments}
         warn
@@ -123,7 +123,7 @@ export const AccountSignals = ({ a }: { a: any }) => {
             ? "…"
             : blocked.error
               ? "?"
-              : blockedCountLabel(nBlocked, blocked.capped)
+              : blockedCountLabel(nBlocked, !blocked.exactFor(a.id))
         }
         warn
         testId="signal-blocked"
@@ -153,7 +153,7 @@ export const AccountSignals = ({ a }: { a: any }) => {
         warn
       />
       <Stat
-        to={clientActionsLink("all", a.id)}
+        to={drilldownLink("all", a.id)}
         label="Open commitments"
         n={a.open_commitments}
         testId="signal-open"

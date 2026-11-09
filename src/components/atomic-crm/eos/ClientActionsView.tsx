@@ -74,6 +74,7 @@ export const ClientActionsView = ({
     view,
     item,
     highlight: newId,
+    drill,
     params,
     setClientActionsParams,
     openItem,
@@ -225,17 +226,19 @@ export const ClientActionsView = ({
         <List
           // D1: item and view are never in the key, so opening the drawer / toggling view never remounts the List.
           key={clientActionsListKey(
-            { tab, companyId, unclassified, status, highlight: newId },
+            { tab, companyId, unclassified, status, highlight: newId, drill },
             ptDate,
           )}
           resource="eos_commitments"
           title="Client Actions"
-          // With ?highlight=, ignore this tab's stored filter/sort/page (they beat the sort
-          // prop in ra-core) so the just-saved row is never hidden (CE review 2026-11-08).
+          // With ?highlight= or ?drill=1, ignore this tab's stored filter/sort/page (they beat
+          // the props in ra-core): the just-saved row is never hidden (CE 2026-11-08) and a
+          // count badge's target list is exactly the badge (U3 CE MF1).
           storeKey={clientActionsStoreKey(
             tab,
             newId,
             locked ? "company" : "global",
+            drill,
           )}
           disableSyncWithLocation
           filter={filter}

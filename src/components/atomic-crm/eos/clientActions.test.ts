@@ -4,6 +4,7 @@ import {
   blockedPortfolioFilter,
   companyActionsPath,
   companyTabPath,
+  drilldownLink,
   groupCountByCompany,
   isClientActionsDrawerOpen,
   clientActionFilter,
@@ -272,7 +273,7 @@ describe("CE nit 6: mobile nav hides only for the Client Actions drawer", () => 
 describe("v1d U3 drilldown helpers", () => {
   it("blocked link: All open, account, list view, status=blocked", () => {
     expect(blockedActionsLink(9)).toBe(
-      "/client-actions?tab=all&company_id=9&view=list&status=blocked",
+      "/client-actions?tab=all&company_id=9&view=list&status=blocked&drill=1",
     );
   });
   it("blocked portfolio filter replaces the open set with status=blocked, unarchived, no @or", () => {
@@ -313,6 +314,21 @@ describe("v1d U3 drilldown helpers", () => {
     );
     expect(isClientActionsDrawerOpen("/companies/8/show/actions", "")).toBe(
       false,
+    );
+  });
+  it("CE MF1: count links carry drill=1; plain tab links do not", () => {
+    expect(drilldownLink("overdue", 8)).toBe(
+      "/client-actions?tab=overdue&company_id=8&drill=1",
+    );
+    expect(clientActionsLink("overdue", 8)).toBe(
+      "/client-actions?tab=overdue&company_id=8",
+    );
+  });
+  it("CE MF1: drill=1 means no stored params (like highlight), in both scopes", () => {
+    expect(clientActionsStoreKey("overdue", null, "global", true)).toBe(false);
+    expect(clientActionsStoreKey("all", null, "company", true)).toBe(false);
+    expect(clientActionsStoreKey("all", null, "global", false)).toBe(
+      "client-actions.all",
     );
   });
 });

@@ -277,4 +277,41 @@ describe("U3 Portfolio drilldown: count ↔ rows (0 mismatches)", () => {
         ?.textContent,
     ).toContain("blocked from first 500 of 505");
   });
+
+  it("blocked cap ordered by company_id,id: accounts before the cut are exact (CE nit 1)", async () => {
+    const today = todayPT();
+    const b = (i: number, company_id: number): FakeRow => ({
+      id: `c${String(i).padStart(4, "0")}`,
+      title: `Blocked ${i}`,
+      status: "blocked",
+      needs_review: false,
+      company_id,
+      owner_sales_id: 3,
+      priority: null,
+      direction: null,
+      due_date: addDays(today, 5),
+      created_at: `${today}T00:00:00Z`,
+      updated_at: `${today}T00:00:00Z`,
+      archived_at: null,
+    });
+    // ids interleave accounts, so an id-only order would undercount account 8.
+    const many: FakeRow[] = [];
+    for (let i = 0; i < 600; i++) many.push(b(i * 3 + 1, 9));
+    for (let i = 0; i < 3; i++) many.push(b(i * 3 + 2, 8));
+    for (let i = 0; i < 2; i++) many.push(b(i * 3 + 3, 10));
+    const { getList } = renderWith(many, <PortfolioRollup />);
+    const label = (id: number) =>
+      document
+        .querySelector(
+          `[data-testid="portfolio-account"][data-company-id="${id}"] [data-testid="portfolio-blocked"]`,
+        )
+        ?.textContent?.replace(/\s+blocked$/, "");
+    await expect.poll(() => label(8)).toBe("3");
+    expect(label(9)).toBe("497+"); // the account at the cut: lower bound
+    expect(label(10)).toBe("0+"); // after the cut: unknown, honest lower bound
+    const call = getList.mock.calls.find(
+      (c) => c[0] === "eos_commitments" && c[1]?.filter?.status === "blocked",
+    )!;
+    expect(call[1].sort).toEqual({ field: "company_id.asc,id", order: "ASC" });
+  });
 });

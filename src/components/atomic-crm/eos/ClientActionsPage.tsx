@@ -8,8 +8,8 @@ import {
   BLOCKED_PORTFOLIO_CAP,
   blockedActionsLink,
   CLIENT_ACTIONS_PATH,
-  clientActionsLink,
   companyActionsPath,
+  drilldownLink,
 } from "./clientActions";
 import { blockedCountLabel, usePortfolioBlocked } from "./usePortfolioBlocked";
 
@@ -123,7 +123,7 @@ export const PortfolioRollup = () => {
                 </Link>
                 <span className="flex flex-wrap justify-end gap-x-3 shrink-0">
                   <Link
-                    to={clientActionsLink("overdue", a.id)}
+                    to={drilldownLink("overdue", a.id)}
                     data-testid="portfolio-overdue"
                     data-count={String(a.overdue_commitments ?? 0)}
                     className={
@@ -149,13 +149,13 @@ export const PortfolioRollup = () => {
                     {blockedReady
                       ? blockedCountLabel(
                           blocked.countFor(a.id),
-                          blocked.capped,
+                          !blocked.exactFor(a.id),
                         )
                       : "…"}{" "}
                     blocked
                   </Link>
                   <Link
-                    to={clientActionsLink("all", a.id)}
+                    to={drilldownLink("all", a.id)}
                     data-testid="portfolio-open"
                     data-count={String(a.open_commitments ?? 0)}
                     className="text-muted-foreground"

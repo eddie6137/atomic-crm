@@ -5,8 +5,8 @@ import { AccountSignals } from "./EosHome";
 import {
   blockedActionsLink,
   CLIENT_ACTION_TABS,
-  clientActionsLink,
   companyActionsPath,
+  drilldownLink,
   sectionCount,
 } from "./clientActions";
 import { blockedCountLabel, usePortfolioBlocked } from "./usePortfolioBlocked";
@@ -233,7 +233,7 @@ const AccountActionsRollup = ({
                   ? "…"
                   : blocked.error
                     ? "?"
-                    : blockedCountLabel(nBlocked, blocked.capped)}
+                    : blockedCountLabel(nBlocked, !blocked.exactFor(companyId))}
               </b>{" "}
               blocked
             </Link>
@@ -244,7 +244,7 @@ const AccountActionsRollup = ({
         {CLIENT_ACTION_TABS.map((t) => (
           <Link
             key={t.id}
-            to={clientActionsLink(t.id, companyId)}
+            to={drilldownLink(t.id, companyId)}
             className="rounded-full border px-3 py-1 min-h-9 inline-flex items-center"
           >
             {t.label}

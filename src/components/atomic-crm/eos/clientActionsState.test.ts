@@ -26,7 +26,9 @@ describe("v1d D1 URL state", () => {
       view: "list",
       item: "a",
       highlight: "b",
+      drill: false,
     });
+    expect(parseClientActionsParams(q("tab=all&drill=1")).drill).toBe(true);
     const d = parseClientActionsParams(q("tab=nope&status=done&view=x"));
     expect(d.tab).toBe("all");
     expect(d.status).toBeNull(); // not a commitment status
@@ -148,6 +150,33 @@ describe("D2 status filter replaces the open set (list view)", () => {
   it("an unknown status is ignored (open set kept)", () => {
     expect(clientActionFilter("all", { status: "done" })).toHaveProperty(
       "status@in",
+    );
+  });
+});
+
+describe("U3 CE MF1: drill=1 (badge arrival) ends on the first list change", () => {
+  const base = "tab=all&company_id=9&view=list&status=blocked&drill=1";
+  it.each([
+    ["tab", { tab: "overdue" as const }],
+    ["unclassified", { unclassified: true }],
+    ["clear company", { company_id: null }],
+    ["clear status", { status: null }],
+    ["view", { view: "board" as const }],
+  ])("%s change drops drill", (_n, patch) => {
+    expect(patchClientActionsParams(q(base), patch).get("drill")).toBeNull();
+  });
+  it("opening the drawer (item) and a no-op tab keep drill", () => {
+    expect(patchClientActionsParams(q(base), { item: "x" }).get("drill")).toBe(
+      "1",
+    );
+    expect(patchClientActionsParams(q(base), { tab: "all" }).get("drill")).toBe(
+      "1",
+    );
+  });
+  it("drill is part of the List remount key (dropping it re-reads saved params)", () => {
+    const s = parseClientActionsParams(q(base));
+    expect(clientActionsListKey(s, "2026-11-09")).not.toBe(
+      clientActionsListKey({ ...s, drill: false }, "2026-11-09"),
     );
   });
 });

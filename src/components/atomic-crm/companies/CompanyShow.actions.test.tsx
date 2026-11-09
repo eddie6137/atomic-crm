@@ -194,26 +194,82 @@ describe("Company page Actions tab (U3)", () => {
     await expect.poll(url).toBe("/companies/8/show/eos");
   });
 
-  it("own store key: saved global q does not carry into the company tab", async () => {
+  it("leaving the Actions tab with the drawer still open strips item/view/highlight", async () => {
     await page.viewport(1440, 900);
-    const store = memoryStore({
-      "client-actions.all.listParams": {
-        filter: { q: "zzz-global-only" },
-        sort: "created_at",
-        order: "DESC",
-        page: 1,
-        perPage: 25,
-      },
-    });
+    renderAt(
+      "/companies/8/show/actions?tab=all&view=board&item=a1&highlight=a2",
+      0,
+    );
+    await expect
+      .poll(() => document.querySelector('[data-testid="action-drawer"]'))
+      .not.toBeNull();
+    expect(url()).toContain("item=a1");
+    // The modal sheet blocks the pointer, so activate the EOS tab directly
+    // (keyboard/AT path), with ?item= still set.
+    const eos = [
+      ...document.querySelectorAll('[data-testid="company-tabs"] [role="tab"]'),
+    ].find((t) => t.textContent === "EOS") as HTMLElement;
+    eos.click();
+    await expect.poll(url).toBe("/companies/8/show/eos");
+  });
+
+  it("390: Back to account with the drawer open strips item (lands on /companies/8/show)", async () => {
+    await page.viewport(390, 844);
+    renderAt("/companies/8/show/actions?tab=all&item=a1", 0);
+    await expect
+      .poll(() => document.querySelector('[data-testid="action-drawer"]'))
+      .not.toBeNull();
+    const back = document.querySelector<HTMLAnchorElement>(
+      '[data-testid="company-actions-back"]',
+    )!;
+    expect(back).not.toBeNull();
+    // Sheet is modal; activate the link directly (keyboard/AT path), item still set.
+    expect(url()).toContain("item=a1");
+    back.click();
+    await expect.poll(url).toBe("/companies/8/show");
+  });
+
+  const saved = (q: string) => ({
+    filter: { q },
+    sort: "created_at",
+    order: "DESC",
+    page: 1,
+    perPage: 25,
+  });
+  const companyListCalls = (getList: any) =>
+    getList.mock.calls.filter(
+      (c: any) =>
+        c[0] === "eos_commitments" &&
+        String(c[1]?.filter?.company_id) === "8" &&
+        c[1]?.pagination?.perPage !== 500,
+    );
+
+  it("own store key: saved global q (real key client-actions.all) does not carry into the company tab", async () => {
+    await page.viewport(1440, 900);
+    // CE MF2: the List's real key is exactly `client-actions.<tab>` (no .listParams).
+    const store = memoryStore({ "client-actions.all": saved("zzz-global") });
     const { getList } = renderAt("/companies/8/show/actions?tab=all", 0, store);
     await expect.poll(listIds).toEqual(["a1", "a2", "a3"]);
-    const listCalls = getList.mock.calls.filter(
-      (c) => c[0] === "eos_commitments" && c[1]?.filter?.company_id != null,
-    );
-    expect(listCalls.length).toBeGreaterThan(0);
-    for (const c of listCalls) {
-      expect(c[1].filter.q).toBeUndefined();
-      expect(String(c[1].filter.company_id)).toBe("8");
-    }
+    const calls = companyListCalls(getList);
+    expect(calls.length).toBeGreaterThan(0);
+    for (const c of calls) expect(c[1].filter.q).toBeUndefined();
+    // The global key is untouched.
+    expect(store.getItem("client-actions.all").filter).toEqual({
+      q: "zzz-global",
+    });
+  });
+
+  it("positive control: the company key client-actions.company.all IS applied in the tab", async () => {
+    await page.viewport(1440, 900);
+    // Fails if the tab stopped reading its own key (or if the preset format were wrong,
+    // which is what made the old test vacuous).
+    const store = memoryStore({
+      "client-actions.all": saved("zzz-global"),
+      "client-actions.company.all": saved("a2"),
+    });
+    const { getList } = renderAt("/companies/8/show/actions?tab=all", 0, store);
+    await expect.poll(listIds).toEqual(["a2"]);
+    const calls = companyListCalls(getList);
+    expect(calls.at(-1)![1].filter.q).toBe("a2");
   });
 });

@@ -19,18 +19,30 @@ export const usePortfolioBlocked = () => {
     {
       filter,
       pagination: { page: 1, perPage: BLOCKED_PORTFOLIO_CAP },
-      sort: { field: "id", order: "ASC" },
+      // CE nit 1: whole accounts before the cap (company_id, then id: stable).
+      sort: { field: "company_id.asc,id", order: "ASC" },
     },
     { retry: false },
   );
   const byCompany = useMemo(() => groupCountByCompany(data ?? []), [data]);
   const loaded = data?.length ?? 0;
+  const capped = total != null && total > loaded;
+  // Rows come in company_id order, so when capped every account before the last loaded
+  // one is complete; only that account and later ones are lower bounds.
+  const last = capped ? data?.[loaded - 1]?.company_id : null;
+  const exactFor = (id: string | number) =>
+    !capped ||
+    (last != null &&
+      Number.isFinite(Number(id)) &&
+      Number.isFinite(Number(last)) &&
+      Number(id) < Number(last));
   return {
     byCompany,
     countFor: (id: string | number) => byCompany.get(String(id)) ?? 0,
+    exactFor,
     loaded,
     total,
-    capped: total != null && total > loaded,
+    capped,
     isPending,
     error: !!error,
   };
