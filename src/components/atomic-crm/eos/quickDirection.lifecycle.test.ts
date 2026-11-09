@@ -28,14 +28,15 @@ const setup = () => {
   const update = vi.fn(async (_r: string, p: any) => ({
     data: { ...p.previousData, ...p.data },
   }));
-  const base = { update } as unknown as DataProvider;
+  const updateMany = vi.fn(async (_r: string, p: any) => ({ data: p.ids }));
+  const base = { update, updateMany } as unknown as DataProvider;
   const dp = withLifecycleCallbacks(base, [
     {
       resource: "eos_commitments",
       beforeSave: async (d: any) => eosBeforeSave(d),
     },
   ]);
-  return { dp, update };
+  return { dp, update, updateMany };
 };
 
 describe("Quick-classify partial update keeps attachments (regression)", () => {
@@ -64,5 +65,30 @@ describe("Quick-classify partial update keeps attachments (regression)", () => {
     expect(out.attachments).toEqual(attached.attachments);
     const created = await eosBeforeSave({ title: "x", new_files: [] });
     expect(created.attachments).toEqual([]);
+  });
+});
+
+describe("Other partial-update paths keep attachments (PR #6 audit)", () => {
+  it("ArchiveButton update sends only archived_at", async () => {
+    const { dp, update } = setup();
+    const archived_at = "2026-11-08T00:00:00Z";
+    await dp.update("eos_commitments", {
+      id: attached.id,
+      data: { archived_at },
+      previousData: attached,
+    });
+    expect(update.mock.calls[0][1].data).toEqual({ archived_at });
+  });
+  it.each([
+    [{ status: "done" }],
+    [{ owner_sales_id: 4 }],
+    [{ priority: "high" }],
+    [{ archived_at: "2026-11-08T00:00:00Z" }],
+  ])("EosBulkActions updateMany %o sends only that field", async (data) => {
+    const { dp, updateMany } = setup();
+    await dp.updateMany("eos_commitments", { ids: ["c1", "c2"], data });
+    const sent = updateMany.mock.calls[0][1].data;
+    expect(sent).toEqual(data);
+    expect(sent).not.toHaveProperty("attachments");
   });
 });
