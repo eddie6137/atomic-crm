@@ -193,6 +193,12 @@ const assertDrilled = async (
   expect(want.length).toBeGreaterThan(0);
   expect(badge).toBe(want.length);
   await expect.poll(listedIds).toEqual(want);
+  // Nit 3: an accessible hint says saved filters are paused.
+  const hint = document.querySelector(
+    '[data-testid="client-actions-drill-hint"]',
+  );
+  expect(hint?.getAttribute("role")).toBe("status");
+  expect(hint?.textContent).toContain("saved filters paused");
   const p = lastListFilter(getList, id);
   expect(p.filter.q).toBeUndefined();
   expect(p.filter.priority).toBeUndefined();
@@ -222,6 +228,9 @@ describe("U3 CE MF1: drilldown ignores saved list params (badge = list)", () => 
     await expect.poll(() => lastListFilter(getList, 8)?.filter?.q).toBe("zzz");
     expect(lastListFilter(getList, 8).filter.priority).toBe("high");
     await expect.poll(listedIds).toEqual([]);
+    expect(
+      document.querySelector('[data-testid="client-actions-drill-hint"]'),
+    ).toBeNull();
   });
 
   for (const c of COMPANIES) {

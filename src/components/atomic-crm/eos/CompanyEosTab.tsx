@@ -5,6 +5,7 @@ import { AccountSignals } from "./EosHome";
 import {
   blockedActionsLink,
   CLIENT_ACTION_TABS,
+  companyActionsDrilldownPath,
   companyActionsPath,
   drilldownLink,
   sectionCount,
@@ -140,7 +141,7 @@ export const CompanyEosTab = ({
             <Link
               to={
                 s.resource === "eos_commitments"
-                  ? companyActionsPath(companyId)
+                  ? companyActionsDrilldownPath(companyId)
                   : `/${s.resource}?filter=${encodeURIComponent(JSON.stringify({ company_id: companyId }))}`
               }
               className="text-sm underline mt-1 inline-block"

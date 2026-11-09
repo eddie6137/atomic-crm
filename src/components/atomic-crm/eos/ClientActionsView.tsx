@@ -165,6 +165,16 @@ export const ClientActionsView = ({
         {companyId && !locked && (
           <CompanyChip id={companyId} onClear={clearCompany} />
         )}
+        {drill && (
+          // Nit 3: say why the filter bar ignores saved filters on a count drilldown.
+          <span
+            role="status"
+            className="rounded-full border border-dashed px-2 py-0.5 text-xs"
+            data-testid="client-actions-drill-hint"
+          >
+            Showing exactly this count (saved filters paused)
+          </span>
+        )}
         {view === "list" && status && (
           <StatusChip status={status} onClear={clearStatus} />
         )}

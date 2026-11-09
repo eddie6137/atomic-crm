@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { ListChecks } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
-import { activeActionFilter, clientActionsLink } from "./clientActions";
+import { activeActionFilter, drilldownLink } from "./clientActions";
 import { todayPT } from "./constants";
 
 const SHOW = 6;
@@ -33,16 +33,21 @@ export const OpenActionsWidget = () => {
           <ListChecks className="size-4 text-muted-foreground" />
           Open client actions
           {!isPending && !error && (
-            <span
-              className="text-sm font-normal text-muted-foreground"
+            // Pre-merge nit 2: the total is a count link, so it drills (badge = list).
+            <Link
+              to={drilldownLink("all")}
+              className="text-sm font-normal text-muted-foreground underline-offset-2 hover:underline"
               data-testid="dashboard-open-actions-total"
+              data-count={String(total ?? 0)}
+              aria-label={`${total ?? 0} open client actions`}
             >
               {total ?? 0}
-            </span>
+            </Link>
           )}
         </h2>
         <Link
-          to={clientActionsLink("all")}
+          to={drilldownLink("all")}
+          data-testid="dashboard-open-actions-view-all"
           className="text-sm underline underline-offset-2 min-h-9 inline-flex items-center"
         >
           View all

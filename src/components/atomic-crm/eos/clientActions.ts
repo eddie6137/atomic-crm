@@ -184,7 +184,7 @@ export const clientActionsLink = (
  */
 export const drilldownLink = (
   tab: ClientActionTab,
-  companyId: string | number,
+  companyId?: string | number | null,
   extra: { view?: "list" | "board"; status?: string } = {},
 ) => clientActionsLink(tab, companyId, { ...extra, drill: true });
 
@@ -216,6 +216,15 @@ export const groupCountByCompany = (
 export const COMPANY_ACTIONS_TAB = "actions";
 export const companyActionsPath = (companyId: string | number) =>
   `/companies/${companyId}/show/${COMPANY_ACTIONS_TAB}`;
+
+/**
+ * Pre-merge nit 1: a count's target on the company Actions tab ("View all {total}").
+ * Same `drill=1` contract as drilldownLink: the tab's saved company params are paused.
+ */
+export const companyActionsDrilldownPath = (
+  companyId: string | number,
+  tab: ClientActionTab = "all",
+) => `${companyActionsPath(companyId)}?tab=${tab}&drill=1`;
 
 /**
  * Target of a company-page tab change (Q5). The path carries no query, so leaving

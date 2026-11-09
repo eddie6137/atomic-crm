@@ -272,4 +272,22 @@ describe("Company page Actions tab (U3)", () => {
     const calls = companyListCalls(getList);
     expect(calls.at(-1)![1].filter.q).toBe("a2");
   });
+
+  it("pre-merge nit 1: company tab drill (?tab=all&drill=1) ignores saved company-tab filters", async () => {
+    await page.viewport(1440, 900);
+    const store = memoryStore({ "client-actions.company.all": saved("a2") });
+    const { getList } = renderAt(
+      "/companies/8/show/actions?tab=all&drill=1",
+      0,
+      store,
+    );
+    await expect.poll(listIds).toEqual(["a1", "a2", "a3"]);
+    expect(companyListCalls(getList).at(-1)![1].filter.q).toBeUndefined();
+    expect(
+      document.querySelector('[data-testid="client-actions-drill-hint"]'),
+    ).not.toBeNull();
+    expect(store.getItem("client-actions.company.all").filter).toEqual({
+      q: "a2",
+    });
+  });
 });

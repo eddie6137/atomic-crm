@@ -3,6 +3,7 @@ import {
   blockedActionsLink,
   blockedPortfolioFilter,
   companyActionsPath,
+  companyActionsDrilldownPath,
   companyTabPath,
   drilldownLink,
   groupCountByCompany,
@@ -330,5 +331,11 @@ describe("v1d U3 drilldown helpers", () => {
     expect(clientActionsStoreKey("all", null, "global", false)).toBe(
       "client-actions.all",
     );
+  });
+  it("pre-merge nits 1/2: company-tab and no-account drilldowns carry drill=1", () => {
+    expect(companyActionsDrilldownPath(8)).toBe(
+      "/companies/8/show/actions?tab=all&drill=1",
+    );
+    expect(drilldownLink("all")).toBe("/client-actions?tab=all&drill=1");
   });
 });
