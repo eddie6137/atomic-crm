@@ -140,7 +140,9 @@ const CompanyShowContent = () => {
 
   return (
     <div className="mt-2 flex pb-2 gap-8">
-      <div className="flex-1">
+      {/* U4 item 4: min-w-0 lets the main column shrink, so the wide Actions table
+          scrolls inside its card instead of pushing the sidebar off the right edge. */}
+      <div className="flex-1 min-w-0">
         <Card>
           <CardContent>
             <div className="flex mb-3">

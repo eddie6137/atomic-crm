@@ -36,7 +36,11 @@ const rows = (): FakeRow[] => {
   const today = todayPT();
   const r = (id: string, company_id: number, status = "open"): FakeRow => ({
     id,
-    title: `Action ${id}`,
+    // a3 is long on purpose (U4 item 4: a wide table must not push the sidebar off).
+    title:
+      id === "a3"
+        ? `Action ${id} follow up on the quarterly business review deck and the renewal pricing sheet before Friday`
+        : `Action ${id}`,
     status,
     needs_review: false,
     company_id,
@@ -259,13 +263,13 @@ describe("Company page Actions tab (U3)", () => {
     });
   });
 
-  it("positive control: the company key client-actions.company.all IS applied in the tab", async () => {
+  it("positive control: the per-account key client-actions.company.8.all IS applied in the tab", async () => {
     await page.viewport(1440, 900);
     // Fails if the tab stopped reading its own key (or if the preset format were wrong,
     // which is what made the old test vacuous).
     const store = memoryStore({
       "client-actions.all": saved("zzz-global"),
-      "client-actions.company.all": saved("a2"),
+      "client-actions.company.8.all": saved("a2"),
     });
     const { getList } = renderAt("/companies/8/show/actions?tab=all", 0, store);
     await expect.poll(listIds).toEqual(["a2"]);
@@ -275,7 +279,7 @@ describe("Company page Actions tab (U3)", () => {
 
   it("pre-merge nit 1: company tab drill (?tab=all&drill=1) ignores saved company-tab filters", async () => {
     await page.viewport(1440, 900);
-    const store = memoryStore({ "client-actions.company.all": saved("a2") });
+    const store = memoryStore({ "client-actions.company.8.all": saved("a2") });
     const { getList } = renderAt(
       "/companies/8/show/actions?tab=all&drill=1",
       0,
@@ -286,8 +290,56 @@ describe("Company page Actions tab (U3)", () => {
     expect(
       document.querySelector('[data-testid="client-actions-drill-hint"]'),
     ).not.toBeNull();
+    expect(store.getItem("client-actions.company.8.all").filter).toEqual({
+      q: "a2",
+    });
+  });
+
+  it("U4: another account's saved search and the old shared U3 key are NOT applied; both are left untouched", async () => {
+    await page.viewport(1440, 900);
+    const store = memoryStore({
+      "client-actions.company.all": saved("a2"), // U3 shared key (legacy)
+      "client-actions.company.9.all": saved("a3"), // account 9's own search
+    });
+    const { getList } = renderAt("/companies/8/show/actions?tab=all", 0, store);
+    await expect.poll(listIds).toEqual(["a1", "a2", "a3"]);
+    expect(companyListCalls(getList).at(-1)![1].filter.q).toBeUndefined();
+    // Not deleted, not rewritten (no unexpected loss of user data).
     expect(store.getItem("client-actions.company.all").filter).toEqual({
       q: "a2",
     });
+    expect(store.getItem("client-actions.company.9.all").filter).toEqual({
+      q: "a3",
+    });
+  });
+
+  for (const w of [1440, 1280]) {
+    it(`U4 item 4 (${w}): the Actions tab does not push the right sidebar off-screen`, async () => {
+      await page.viewport(w, 900);
+      renderAt("/companies/8/show/actions?tab=all", 3);
+      await expect.poll(listIds).toEqual(["a1", "a2", "a3"]);
+      await new Promise((r) => setTimeout(r, 300));
+      const main = document
+        .querySelector('[data-testid="company-tabs"]')!
+        .closest(".flex-1") as HTMLElement;
+      const row = main.parentElement!;
+      const aside = row.lastElementChild as HTMLElement;
+      expect(aside).not.toBe(main);
+      expect(aside.getBoundingClientRect().right).toBeLessThanOrEqual(
+        row.getBoundingClientRect().right + 0.5,
+      );
+      expect(main.scrollWidth).toBeLessThanOrEqual(main.clientWidth + 1);
+    });
+  }
+
+  it("U4 item 3: the Account column is hidden on the company Actions tab", async () => {
+    await page.viewport(1440, 900);
+    renderAt("/companies/8/show/actions?tab=all", 0);
+    await expect.poll(listIds).toEqual(["a1", "a2", "a3"]);
+    const heads = [...document.querySelectorAll("thead th")].map((th) =>
+      (th.textContent ?? "").trim(),
+    );
+    expect(heads).toContain("Owner");
+    expect(heads).not.toContain("Account");
   });
 });

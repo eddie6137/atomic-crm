@@ -21,6 +21,7 @@ import {
   commitmentCreatedPath,
   commitmentEditedPath,
   clientActionsStoreKey,
+  LEGACY_COMPANY_STORE_KEY,
 } from "./clientActions";
 
 // Instants given in UTC; expectations are PT calendar dates.
@@ -301,10 +302,18 @@ describe("v1d U3 drilldown helpers", () => {
   });
   it("company tab has its own list store key", () => {
     expect(clientActionsStoreKey("all")).toBe("client-actions.all");
-    expect(clientActionsStoreKey("all", null, "company")).toBe(
-      "client-actions.company.all",
+    // U4 (CTO call b): one key per account; the U3 shared key is no longer produced.
+    expect(clientActionsStoreKey("all", null, "company", false, 8)).toBe(
+      "client-actions.company.8.all",
     );
-    expect(clientActionsStoreKey("all", "h1", "company")).toBe(false);
+    expect(clientActionsStoreKey("overdue", null, "company", false, "9")).toBe(
+      "client-actions.company.9.overdue",
+    );
+    expect(clientActionsStoreKey("all", null, "company", false, 8)).not.toBe(
+      LEGACY_COMPANY_STORE_KEY("all"),
+    );
+    expect(clientActionsStoreKey("all", "h1", "company", false, 8)).toBe(false);
+    expect(clientActionsStoreKey("all", null, "company", true, 8)).toBe(false);
   });
   it("mobile nav also hides for the drawer on the company Actions route", () => {
     expect(

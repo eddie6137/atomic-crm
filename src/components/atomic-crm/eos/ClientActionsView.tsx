@@ -4,9 +4,12 @@ import {
   useGetList,
   useGetOne,
   useListContext,
+  useNotify,
   useRecordContext,
   useStore,
 } from "ra-core";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { QuickAdd, type QuickAddCreated } from "./QuickAdd";
 import { Link } from "react-router";
 import { Plus, X } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
@@ -28,6 +31,7 @@ import {
   HIGHLIGHT_CLASS,
   ptWeekRange,
   type ClientActionTab,
+  quickAddVisibleInList,
 } from "./clientActions";
 import { usePTDate } from "./usePTDate";
 import { QuickDirection } from "./QuickDirection";
@@ -59,7 +63,7 @@ const tabHint = (tab: ClientActionTab, ptDate: string) => {
  * /client-actions and the company page Actions tab (U3). With `lockedCompanyId`
  * the account is a permanent filter (ra merges {...filterValues, ...permanent},
  * so the lock wins), the account chip/input are hidden and list params use the
- * separate store key `client-actions.company.<tab>`.
+ * per-account store key `client-actions.company.<id>.<tab>` (U4).
  */
 export const ClientActionsView = ({
   lockedCompanyId,
@@ -114,6 +118,57 @@ export const ClientActionsView = ({
         status,
       }),
     [tab, identity?.id, companyId, ptDate, unclassified, status],
+  );
+  // U4: a quick-added row is highlighted from local state, never the URL (the URL
+  // highlight remounts the List and pauses saved filters). Only when the new row is
+  // hidden by the current filters does the toast's "Show" set ?highlight=.
+  const isMobile = useIsMobile();
+  const notify = useNotify();
+  const [localNew, setLocalNew] = useState<string | null>(null);
+  const hl = newId ?? localNew;
+  const filterValuesRef = useRef<Record<string, unknown>>({});
+  const scopeKey = `${tab}|${companyId}|${unclassified}|${status}|${drill}`;
+  useEffect(() => setLocalNew(null), [scopeKey]);
+  const onQuickAdded = useCallback(
+    (rec: QuickAddCreated) => {
+      const visible = quickAddVisibleInList(rec, {
+        tab,
+        identityId: identity?.id,
+        unclassified,
+        companyId,
+        status,
+        filterValues: filterValuesRef.current,
+        now: ptNoon(ptDate),
+      });
+      if (visible) {
+        setLocalNew(String(rec.id));
+        notify("Client action added", { type: "success" });
+        return;
+      }
+      notify(
+        <span data-testid="quick-add-hidden-toast">
+          Added, but hidden by the current filters.{" "}
+          <button
+            type="button"
+            className="underline font-medium"
+            data-testid="quick-add-show"
+            onClick={() =>
+              setClientActionsParams({
+                tab: "all",
+                status: null,
+                unclassified: false,
+                highlight: String(rec.id),
+              })
+            }
+          >
+            Show
+          </button>
+        </span>,
+        { type: "info", autoHideDuration: 8000 },
+      );
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setClientActionsParams is router-bound
+    [tab, identity?.id, unclassified, companyId, status, ptDate, notify],
   );
   // Nit A: every list-changing control goes through the single writer, which drops ?highlight=.
   const toggleUnclassified = () =>
@@ -233,137 +288,157 @@ export const ClientActionsView = ({
             : "Could not resolve your identity, so My actions is unavailable."}
         </p>
       ) : (
-        <List
-          // D1: item and view are never in the key, so opening the drawer / toggling view never remounts the List.
-          key={clientActionsListKey(
-            { tab, companyId, unclassified, status, highlight: newId, drill },
-            ptDate,
-          )}
-          resource="eos_commitments"
-          title="Client Actions"
-          // With ?highlight= or ?drill=1, ignore this tab's stored filter/sort/page (they beat
-          // the props in ra-core): the just-saved row is never hidden (CE 2026-11-08) and a
-          // count badge's target list is exactly the badge (U3 CE MF1).
-          storeKey={clientActionsStoreKey(
-            tab,
-            newId,
-            locked ? "company" : "global",
-            drill,
-          )}
-          disableSyncWithLocation
-          filter={filter}
-          pagination={view === "board" ? false : undefined}
-          perPage={view === "board" ? 1 : undefined}
-          filters={[
-            <SearchInput source="q" alwaysOn key="q" />,
-            ...(companyId
-              ? []
-              : [
-                  <CompanyInput
-                    source="company_id"
-                    key="company"
-                    alwaysOn
-                    placeholder="All accounts"
-                  />,
-                ]),
-            ...(tab === "mine"
-              ? []
-              : [
-                  <OwnerInput
-                    source="owner_sales_id"
-                    key="owner"
-                    alwaysOn
-                    placeholder="All owners"
-                  />,
-                ]),
-            <SelectInput
-              source="priority"
-              choices={choices(PRIORITIES)}
-              key="priority"
-              alwaysOn
-              // CTO nit (U3): an empty Priority box read as broken.
-              emptyText="All priorities"
-            />,
-          ]}
-          sort={
-            tab === "all"
-              ? { field: "created_at", order: "DESC" }
-              : { field: "due_date", order: "ASC" }
-          }
-          actions={
-            <TopToolbar>
-              <Link
-                to={
-                  companyId
-                    ? `/eos_commitments/create?source=${encodeURIComponent(JSON.stringify({ company_id: Number(companyId) || companyId }))}`
-                    : "/eos_commitments/create"
-                }
-                className={buttonVariants({ size: "sm" })}
-                data-testid="client-actions-new"
-              >
-                <Plus className="size-4" /> New action
-              </Link>
-            </TopToolbar>
-          }
-        >
-          {/* CE MF2: only the list reports its page ids; in board view the List runs
-              perPage:1 and would clobber the board's ids (Prev/Next). */}
-          {view === "list" && <ListIdsReporter onIds={setPageIds} />}
-          {view === "board" ? (
-            <ClientActionsBoard
-              highlightId={newId}
-              itemId={item}
-              onOpenItem={openItem}
-              permanentFilter={filter}
-              onIds={setPageIds}
-              onShowCompletedInList={() =>
-                setClientActionsParams({ view: "list", status: "completed" })
-              }
+        <>
+          {/* U4: outside the List's remount subtree so a remount never steals focus. Phone
+            uses the + button's drawer (MobileNavigation) instead. */}
+          {!isMobile && (
+            <QuickAdd
+              key={`qa-${companyId ?? ""}`}
+              companyId={companyId}
+              lockedCompanyId={locked ? lockedCompanyId : null}
+              boardHint={view === "board"}
+              onCreated={onQuickAdded}
             />
-          ) : (
-            <EosListBody
-              highlightId={newId}
-              onOpenItem={openItem}
-              bulkFields={COMMITMENT_BULK}
-              cardActions={() => (
-                <>
-                  <span className="text-muted-foreground">Direction</span>
-                  <QuickDirection />
-                </>
-              )}
-            >
-              <DataTable
-                // v1d U1: a row click opens the detail drawer (?item=), not the edit page.
-                rowClick={(id) => {
-                  openItem(id);
-                  return false;
-                }}
-                rowClassName={(r) =>
-                  newId != null && String(r.id) === newId
-                    ? `bg-primary/10 font-medium ${HIGHLIGHT_CLASS}`
-                    : undefined
-                }
-                bulkActionsToolbar={<EosBulkToolbar fields={COMMITMENT_BULK} />}
-              >
-                <DataTable.Col source="title">
-                  <OpenItemTitle onOpen={openItem} />
-                </DataTable.Col>
-                {CommonCols()}
-                <DataTable.Col source="status" />
-                <DataTable.Col source="direction" label="Direction">
-                  <QuickDirection />
-                </DataTable.Col>
-                <DataTable.Col source="due_date" label="Due">
-                  <DueField />
-                </DataTable.Col>
-                <DataTable.Col source="priority" />
-                <DataTable.Col label="Links / files">
-                  <LinksField />
-                </DataTable.Col>
-              </DataTable>
-            </EosListBody>
           )}
-        </List>
+          <List
+            // D1: item and view are never in the key, so opening the drawer / toggling view never remounts the List.
+            key={clientActionsListKey(
+              { tab, companyId, unclassified, status, highlight: newId, drill },
+              ptDate,
+            )}
+            resource="eos_commitments"
+            title="Client Actions"
+            // With ?highlight= or ?drill=1, ignore this tab's stored filter/sort/page (they beat
+            // the props in ra-core): the just-saved row is never hidden (CE 2026-11-08) and a
+            // count badge's target list is exactly the badge (U3 CE MF1).
+            storeKey={clientActionsStoreKey(
+              tab,
+              newId,
+              locked ? "company" : "global",
+              drill,
+              locked ? lockedCompanyId : null,
+            )}
+            disableSyncWithLocation
+            filter={filter}
+            pagination={view === "board" ? false : undefined}
+            perPage={view === "board" ? 1 : undefined}
+            filters={[
+              <SearchInput source="q" alwaysOn key="q" />,
+              ...(companyId
+                ? []
+                : [
+                    <CompanyInput
+                      source="company_id"
+                      key="company"
+                      alwaysOn
+                      placeholder="All accounts"
+                    />,
+                  ]),
+              ...(tab === "mine"
+                ? []
+                : [
+                    <OwnerInput
+                      source="owner_sales_id"
+                      key="owner"
+                      alwaysOn
+                      placeholder="All owners"
+                    />,
+                  ]),
+              <SelectInput
+                source="priority"
+                choices={choices(PRIORITIES)}
+                key="priority"
+                alwaysOn
+                // CTO nit (U3): an empty Priority box read as broken.
+                emptyText="All priorities"
+              />,
+            ]}
+            sort={
+              tab === "all"
+                ? { field: "created_at", order: "DESC" }
+                : { field: "due_date", order: "ASC" }
+            }
+            actions={
+              <TopToolbar>
+                <Link
+                  to={
+                    companyId
+                      ? `/eos_commitments/create?source=${encodeURIComponent(JSON.stringify({ company_id: Number(companyId) || companyId }))}`
+                      : "/eos_commitments/create"
+                  }
+                  className={buttonVariants({ size: "sm" })}
+                  data-testid="client-actions-new"
+                >
+                  <Plus className="size-4" /> New action
+                </Link>
+              </TopToolbar>
+            }
+          >
+            {/* CE MF2: only the list reports its page ids; in board view the List runs
+              perPage:1 and would clobber the board's ids (Prev/Next). */}
+            {view === "list" && <ListIdsReporter onIds={setPageIds} />}
+            <FilterValuesReporter target={filterValuesRef} />
+            {view === "board" ? (
+              <ClientActionsBoard
+                highlightId={hl}
+                itemId={item}
+                onOpenItem={openItem}
+                permanentFilter={filter}
+                onIds={setPageIds}
+                onShowCompletedInList={() =>
+                  setClientActionsParams({ view: "list", status: "completed" })
+                }
+              />
+            ) : (
+              <EosListBody
+                highlightId={hl}
+                onOpenItem={openItem}
+                bulkFields={COMMITMENT_BULK}
+                cardActions={() => (
+                  <>
+                    <span className="text-muted-foreground">Direction</span>
+                    <QuickDirection />
+                  </>
+                )}
+              >
+                <DataTable
+                  // v1d U1: a row click opens the detail drawer (?item=), not the edit page.
+                  rowClick={(id) => {
+                    openItem(id);
+                    return false;
+                  }}
+                  rowClassName={(r) =>
+                    hl != null && String(r.id) === hl
+                      ? `bg-primary/10 font-medium ${HIGHLIGHT_CLASS}`
+                      : undefined
+                  }
+                  bulkActionsToolbar={
+                    <EosBulkToolbar fields={COMMITMENT_BULK} />
+                  }
+                >
+                  <DataTable.Col source="title">
+                    <OpenItemTitle onOpen={openItem} />
+                  </DataTable.Col>
+                  {/* U4: scoped to one account, the Account column is noise. */}
+                  {locked
+                    ? CommonCols().filter((c) => c.key !== "c")
+                    : CommonCols()}
+                  <DataTable.Col source="status" />
+                  <DataTable.Col source="direction" label="Direction">
+                    <QuickDirection />
+                  </DataTable.Col>
+                  <DataTable.Col source="due_date" label="Due">
+                    <DueField />
+                  </DataTable.Col>
+                  <DataTable.Col source="priority" />
+                  <DataTable.Col label="Links / files">
+                    <LinksField />
+                  </DataTable.Col>
+                </DataTable>
+              </EosListBody>
+            )}
+          </List>
+        </>
       )}
       <ActionDrawer
         item={item}
@@ -375,6 +450,17 @@ export const ClientActionsView = ({
       />
     </div>
   );
+};
+
+/** U4: the List's current filter values, read by the quick-add hidden-row check. */
+const FilterValuesReporter = ({
+  target,
+}: {
+  target: { current: Record<string, unknown> };
+}) => {
+  const { filterValues } = useListContext();
+  target.current = filterValues ?? {};
+  return null;
 };
 
 /** Reports the loaded page's ids (Prev/Next) without making the List depend on the drawer. */

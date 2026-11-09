@@ -292,12 +292,87 @@ export const clientActionsStoreKey = (
   highlightId?: string | null,
   scope: "global" | "company" = "global",
   drill = false,
+  companyId?: string | number | null,
 ) =>
   highlightId || drill
     ? (false as const)
     : scope === "company"
-      ? `client-actions.company.${tab}`
+      ? // U4 (CTO call b): one saved search per account. The U3 shared key
+        // `client-actions.company.<tab>` is ignored from now on and left in
+        // storage untouched (never deleted, never copied to every account).
+        `client-actions.company.${companyId ?? "_"}.${tab}`
       : `client-actions.${tab}`;
+
+/** U3's shared company-tab key; read by nothing since U4 (kept only for tests/docs). */
+export const LEGACY_COMPANY_STORE_KEY = (tab: string) =>
+  `client-actions.company.${tab}`;
+
+// ---------------- U4 quick-add ----------------
+export type QuickAddDueChip = "none" | "today" | "tomorrow" | "next_week";
+export const QUICK_ADD_DUE_CHIPS: ReadonlyArray<{
+  id: QuickAddDueChip;
+  label: string;
+}> = [
+  { id: "today", label: "Today" },
+  { id: "tomorrow", label: "Tomorrow" },
+  { id: "next_week", label: "Next week" },
+];
+
+/**
+ * Chip → PT date (Q7). "Next week" = the Monday of the next PT Mon–Sun week
+ * (`ptWeekRange().end + 1`): +7 on a Monday, never today, never inside "Due this week".
+ */
+export const quickAddDueDate = (
+  chip: QuickAddDueChip,
+  now: Date = new Date(),
+): string | null => {
+  const today = todayPT(now);
+  switch (chip) {
+    case "today":
+      return today;
+    case "tomorrow":
+      return addDays(today, 1);
+    case "next_week":
+      return addDays(ptWeekRange(now).end, 1);
+    default:
+      return null;
+  }
+};
+
+/**
+ * The quick-add create body (spec U4 write path). Literal values only (no
+ * normalizeCommitment): title trimmed, account + owner, status open, and
+ * `due_date` only when a chip is set (omitted, never ""). Never attachments,
+ * links, new_files, raw or revision, so the DB defaults apply.
+ */
+export const quickAddPayload = (v: {
+  title: string;
+  company_id: string | number;
+  owner_sales_id?: string | number | null;
+  due: QuickAddDueChip;
+  now?: Date;
+}) => {
+  const title = v.title.trim();
+  if (!title) throw new Error("Title is required");
+  if (v.company_id == null || v.company_id === "")
+    throw new Error("Account is required");
+  const data: {
+    title: string;
+    company_id: string | number;
+    owner_sales_id?: string | number;
+    status: "open";
+    due_date?: string;
+  } = {
+    title,
+    company_id: Number(v.company_id) || v.company_id,
+    status: "open",
+  };
+  if (v.owner_sales_id != null && v.owner_sales_id !== "")
+    data.owner_sales_id = Number(v.owner_sales_id) || v.owner_sales_id;
+  const due = quickAddDueDate(v.due, v.now);
+  if (due) data.due_date = due;
+  return data;
+};
 
 /**
  * Where an edit lands: back on All open with the row highlighted while it is still open;
@@ -310,3 +385,60 @@ export const commitmentEditedPath = (
   data && (data.archived_at || !COMMITMENT_OPEN.includes(data.status))
     ? CLIENT_ACTIONS_PATH
     : commitmentCreatedPath(id);
+
+/**
+ * U4: would a just-created row show in the current list? Tab predicate + account +
+ * status chip + the List's own filter values (q, owner, priority). Conservative: when
+ * unsure (q matching beyond the title) it says hidden, and "Show" (?highlight=, which
+ * ignores saved filters) is harmless for a row that was visible anyway.
+ */
+export const quickAddVisibleInList = (
+  r: {
+    title?: string | null;
+    status?: string | null;
+    archived_at?: string | null;
+    due_date?: string | null;
+    owner_sales_id?: unknown;
+    direction?: string | null;
+    company_id?: unknown;
+    priority?: string | null;
+  },
+  ctx: {
+    tab: ClientActionTab;
+    identityId?: string | number | null;
+    unclassified?: boolean;
+    companyId?: string | number | null;
+    status?: string | null;
+    filterValues?: Record<string, unknown>;
+    now?: Date;
+  },
+) => {
+  if (ctx.status) {
+    if (r.status !== ctx.status || r.archived_at != null) return false;
+  } else if (
+    !matchesClientActionTab(r, ctx.tab, {
+      now: ctx.now,
+      identityId: ctx.identityId,
+      unclassified: ctx.unclassified,
+    })
+  )
+    return false;
+  if (ctx.companyId != null && ctx.companyId !== "")
+    if (String(r.company_id) !== String(ctx.companyId)) return false;
+  const fv = ctx.filterValues ?? {};
+  const q = typeof fv.q === "string" ? fv.q.trim().toLowerCase() : "";
+  if (
+    q &&
+    !String(r.title ?? "")
+      .toLowerCase()
+      .includes(q)
+  )
+    return false;
+  if (fv.owner_sales_id != null && fv.owner_sales_id !== "")
+    if (String(r.owner_sales_id) !== String(fv.owner_sales_id)) return false;
+  if (fv.priority != null && fv.priority !== "")
+    if (r.priority !== fv.priority) return false;
+  if (fv.company_id != null && fv.company_id !== "")
+    if (String(r.company_id) !== String(fv.company_id)) return false;
+  return true;
+};

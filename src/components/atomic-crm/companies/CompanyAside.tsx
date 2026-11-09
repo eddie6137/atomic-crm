@@ -30,7 +30,7 @@ export const CompanyAside = ({ link = "edit" }: CompanyAsideProps) => {
   if (!record) return null;
 
   return (
-    <div className="hidden sm:block w-92 min-w-92 space-y-4">
+    <div className="hidden sm:block w-92 min-w-92 space-y-4 break-words">
       <div className="flex flex-row space-x-1">
         {link === "edit" ? (
           <EditButton label={translate("resources.companies.action.edit")} />
@@ -70,12 +70,15 @@ export const CompanyInfo = ({ record }: { record: Company }) => {
       title={translate("resources.companies.field_categories.contact")}
     >
       {record.website && (
-        <div className="flex flex-row items-center gap-1 min-h-[24px]">
-          <Globe className="w-4 h-4" />
+        <div className="flex flex-row items-center gap-1 min-h-[24px] min-w-0">
+          <Globe className="w-4 h-4 shrink-0" />
+          {/* U4 item 4: a long URL truncates with the full URL as a tooltip. */}
           <UrlField
             source="website"
             target="_blank"
             rel="noopener"
+            className="truncate min-w-0"
+            title={record.website}
             content={record.website
               .replace("http://", "")
               .replace("https://", "")}

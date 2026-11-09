@@ -8,17 +8,12 @@ import {
 import { cn } from "@/lib/utils";
 import { Home, ListTodo, Plus, Settings, Target, Users } from "lucide-react";
 import { useTranslate } from "ra-core";
-import {
-  Link,
-  matchPath,
-  useLocation,
-  useMatch,
-  useNavigate,
-} from "react-router";
+import { Link, matchPath, useLocation, useMatch } from "react-router";
 import { ContactCreateSheet } from "../contacts/ContactCreateSheet";
 import { useState } from "react";
 import { NoteCreateSheet } from "../notes/NoteCreateSheet";
 import { isClientActionsDrawerOpen } from "../eos/clientActions";
+import { QuickAddSheet } from "../eos/QuickAddSheet";
 
 export const MobileNavigation = () => {
   const location = useLocation();
@@ -126,8 +121,16 @@ const CreateButton = () => {
   const contact_id = useMatch("/contacts/:id/*")?.params.id;
   const [contactCreateOpen, setContactCreateOpen] = useState(false);
   const [noteCreateOpen, setNoteCreateOpen] = useState(false);
-  const navigate = useNavigate();
-  const company_id = useMatch("/companies/:id/*")?.params.id;
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const location = useLocation();
+  const rawCompany = useMatch("/companies/:id/*")?.params.id;
+  // Only a real account page locks the account (not /companies/create).
+  const company_id =
+    rawCompany && /^\d+$/.test(rawCompany) ? rawCompany : undefined;
+  // On /client-actions?company_id=… the account is preselected but editable.
+  const listCompany = matchPath("/client-actions/*", location.pathname)
+    ? new URLSearchParams(location.search).get("company_id")
+    : null;
 
   return (
     <>
@@ -139,6 +142,12 @@ const CreateButton = () => {
         open={noteCreateOpen}
         onOpenChange={setNoteCreateOpen}
         contact_id={contact_id}
+      />
+      <QuickAddSheet
+        open={quickAddOpen}
+        onOpenChange={setQuickAddOpen}
+        companyId={listCompany}
+        lockedCompanyId={company_id ?? null}
       />
       <DropdownMenu>
         <DropdownMenuTrigger
@@ -174,11 +183,8 @@ const CreateButton = () => {
             className="h-12 px-4 text-base"
             data-testid="mobile-create-client-action"
             onClick={() => {
-              navigate(
-                company_id
-                  ? `/eos_commitments/create?source=${encodeURIComponent(JSON.stringify({ company_id: Number(company_id) || company_id }))}`
-                  : "/eos_commitments/create",
-              );
+              // U4: quick-add drawer; its "More fields" opens the full create form.
+              setQuickAddOpen(true);
             }}
           >
             Client action
