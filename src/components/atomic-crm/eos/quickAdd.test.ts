@@ -210,3 +210,15 @@ describe("quickAddVisibleInList", () => {
     ).toBe(false);
   });
 });
+
+describe("quickAddPayload title cap (CE nit 2)", () => {
+  it("accepts 500 characters and rejects 501", () => {
+    expect(
+      quickAddPayload({ title: "x".repeat(500), company_id: 8, due: "none" })
+        .title.length,
+    ).toBe(500);
+    expect(() =>
+      quickAddPayload({ title: "x".repeat(501), company_id: 8, due: "none" }),
+    ).toThrow(/too long/);
+  });
+});

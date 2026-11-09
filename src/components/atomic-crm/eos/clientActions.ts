@@ -280,6 +280,15 @@ export const msUntilNextPTMidnight = (now: Date = new Date()) => {
 export const commitmentCreatedPath = (id: unknown) =>
   `${CLIENT_ACTIONS_PATH}?${new URLSearchParams({ tab: "all", highlight: String(id) })}`;
 
+/** U4 CE nit 5: where the phone sheet's "Show" goes when no list is on screen. */
+export const quickAddShowPath = (
+  id: unknown,
+  companyId?: string | number | null,
+) =>
+  companyId != null && companyId !== ""
+    ? `${companyActionsPath(companyId)}?${new URLSearchParams({ tab: "all", highlight: String(id) })}`
+    : commitmentCreatedPath(id);
+
 /** Class put on the highlighted Client Actions row or card; used to scroll it into view. */
 export const HIGHLIGHT_CLASS = "eos-highlight";
 
@@ -308,6 +317,8 @@ export const LEGACY_COMPANY_STORE_KEY = (tab: string) =>
   `client-actions.company.${tab}`;
 
 // ---------------- U4 quick-add ----------------
+/** CE nit 2: app-side title cap for quick-add (input maxLength + payload guard). */
+export const QUICK_ADD_TITLE_MAX = 500;
 export type QuickAddDueChip = "none" | "today" | "tomorrow" | "next_week";
 export const QUICK_ADD_DUE_CHIPS: ReadonlyArray<{
   id: QuickAddDueChip;
@@ -354,6 +365,10 @@ export const quickAddPayload = (v: {
 }) => {
   const title = v.title.trim();
   if (!title) throw new Error("Title is required");
+  if (title.length > QUICK_ADD_TITLE_MAX)
+    throw new Error(
+      `Title is too long (max ${QUICK_ADD_TITLE_MAX} characters)`,
+    );
   if (v.company_id == null || v.company_id === "")
     throw new Error("Account is required");
   const data: {

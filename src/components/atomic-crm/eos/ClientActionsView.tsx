@@ -9,7 +9,12 @@ import {
   useStore,
 } from "ra-core";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { QuickAdd, type QuickAddCreated } from "./QuickAdd";
+import {
+  QUICK_ADD_CONFIRM_MS,
+  QUICK_ADD_EVENT,
+  QuickAdd,
+  type QuickAddCreated,
+} from "./QuickAdd";
 import { Link } from "react-router";
 import { Plus, X } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
@@ -129,6 +134,54 @@ export const ClientActionsView = ({
   const filterValuesRef = useRef<Record<string, unknown>>({});
   const scopeKey = `${tab}|${companyId}|${unclassified}|${status}|${drill}`;
   useEffect(() => setLocalNew(null), [scopeKey]);
+  // CE nit 3: "Show" must actually show the row: tab all, no status/unclassified
+  // chip, and drop a URL company_id that conflicts with the saved row's account.
+  const showSaved = (rec: QuickAddCreated) =>
+    setClientActionsParams({
+      tab: "all",
+      status: null,
+      unclassified: false,
+      ...(!locked &&
+      urlCompanyId &&
+      String(rec.company_id ?? "") !== String(urlCompanyId)
+        ? { company_id: null }
+        : {}),
+      highlight: String(rec.id),
+    });
+  const showSavedRef = useRef(showSaved);
+  showSavedRef.current = showSaved;
+  const notifyHidden = useCallback(
+    (rec: QuickAddCreated, why: "filters" | "page") =>
+      notify(
+        <span data-testid="quick-add-hidden-toast" data-why={why}>
+          {why === "filters"
+            ? "Added, but hidden by the current filters."
+            : "Added, but not on this page."}{" "}
+          <button
+            type="button"
+            className="underline font-medium"
+            data-testid="quick-add-show"
+            onClick={() => showSavedRef.current(rec)}
+          >
+            Show
+          </button>
+        </span>,
+        { type: "info", autoHideDuration: 8000 },
+      ),
+    [notify],
+  );
+  // CE nit 4: the predicate can't see sort/paging, so a "visible" row is confirmed
+  // against the ids the list/board actually loaded after the refresh; if it never
+  // shows up there, fall back to the "not on this page" hint with Show.
+  const pendingNew = useRef<{ rec: QuickAddCreated; timer: number } | null>(
+    null,
+  );
+  useEffect(
+    () => () => {
+      if (pendingNew.current) window.clearTimeout(pendingNew.current.timer);
+    },
+    [],
+  );
   const onQuickAdded = useCallback(
     (rec: QuickAddCreated) => {
       const visible = quickAddVisibleInList(rec, {
@@ -140,36 +193,40 @@ export const ClientActionsView = ({
         filterValues: filterValuesRef.current,
         now: ptNoon(ptDate),
       });
-      if (visible) {
-        setLocalNew(String(rec.id));
-        notify("Client action added", { type: "success" });
+      if (pendingNew.current) {
+        window.clearTimeout(pendingNew.current.timer);
+        pendingNew.current = null;
+      }
+      if (!visible) {
+        notifyHidden(rec, "filters");
         return;
       }
-      notify(
-        <span data-testid="quick-add-hidden-toast">
-          Added, but hidden by the current filters.{" "}
-          <button
-            type="button"
-            className="underline font-medium"
-            data-testid="quick-add-show"
-            onClick={() =>
-              setClientActionsParams({
-                tab: "all",
-                status: null,
-                unclassified: false,
-                highlight: String(rec.id),
-              })
-            }
-          >
-            Show
-          </button>
-        </span>,
-        { type: "info", autoHideDuration: 8000 },
-      );
+      setLocalNew(String(rec.id));
+      pendingNew.current = {
+        rec,
+        timer: window.setTimeout(() => {
+          if (pendingNew.current?.rec.id !== rec.id) return;
+          pendingNew.current = null;
+          notifyHidden(rec, "page");
+        }, QUICK_ADD_CONFIRM_MS),
+      };
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- setClientActionsParams is router-bound
-    [tab, identity?.id, unclassified, companyId, status, ptDate, notify],
+    [tab, identity?.id, unclassified, companyId, status, ptDate, notifyHidden],
   );
+  // CE nit 5: the phone sheet (MobileNavigation) hands its saves to the mounted view,
+  // so phone gets the same highlight / hidden hint as desktop.
+  const onQuickAddedRef = useRef(onQuickAdded);
+  onQuickAddedRef.current = onQuickAdded;
+  useEffect(() => {
+    const h = (e: Event) => {
+      const rec = (e as CustomEvent<QuickAddCreated>).detail;
+      if (!rec?.id) return;
+      e.preventDefault(); // tells the sheet a view handled it
+      onQuickAddedRef.current(rec);
+    };
+    window.addEventListener(QUICK_ADD_EVENT, h);
+    return () => window.removeEventListener(QUICK_ADD_EVENT, h);
+  }, []);
   // Nit A: every list-changing control goes through the single writer, which drops ?highlight=.
   const toggleUnclassified = () =>
     setClientActionsParams({ unclassified: !unclassified });
@@ -179,6 +236,14 @@ export const ClientActionsView = ({
   // Prev/Next come from the loaded page; the drawer itself loads by getOne.
   const [pageIds, setPageIds] = useState<string[]>([]);
   const { prev, next } = neighbourIds(pageIds, item);
+  useEffect(() => {
+    const p = pendingNew.current;
+    if (p && pageIds.includes(String(p.rec.id))) {
+      window.clearTimeout(p.timer);
+      pendingNew.current = null;
+      notify("Client action added", { type: "success" });
+    }
+  }, [pageIds, notify]);
   const lastItem = useRef<string | null>(null);
   if (item) lastItem.current = item;
   const focusOpener = useCallback(() => {

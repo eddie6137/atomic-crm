@@ -1,6 +1,6 @@
 // v1d U4: inline quick-add (spec §5 U4). One line, Enter saves, focus stays for the
 // next entry. Write path: one `create` with quickAddPayload() only.
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Form,
   useCreate,
@@ -9,17 +9,23 @@ import {
   useNotify,
   useRefresh,
 } from "ra-core";
-import { useFormContext } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { TextInput } from "@/components/admin/text-input";
 import { CompanyInput, OwnerInput } from "./EosShared";
 import {
+  QUICK_ADD_TITLE_MAX,
   QUICK_ADD_DUE_CHIPS,
   quickAddDueDate,
   quickAddPayload,
   type QuickAddDueChip,
 } from "./clientActions";
+
+/** Phone sheet → mounted Client Actions view (CE nit 5). Cancelled = handled. */
+export const QUICK_ADD_EVENT = "client-actions:quick-added";
+/** How long the view waits for a "visible" new row to appear in the loaded ids. */
+export const QUICK_ADD_CONFIRM_MS = 3000;
 
 export type QuickAddCreated = {
   id: string | number;
@@ -82,6 +88,14 @@ const QuickAddFields = ({
   const notify = useNotify();
   const refresh = useRefresh();
   const navigate = useNavigate();
+  // CE nit 6: a date chosen for one account must not silently carry over to another.
+  const watchedCompany = useWatch({ name: "company_id" });
+  const lastCompany = useRef(watchedCompany);
+  useEffect(() => {
+    if (String(lastCompany.current ?? "") !== String(watchedCompany ?? ""))
+      setDue("none");
+    lastCompany.current = watchedCompany;
+  }, [watchedCompany]);
   const titleInput = () =>
     rootRef.current?.querySelector<HTMLInputElement>('input[name="title"]');
 
@@ -163,6 +177,8 @@ const QuickAddFields = ({
       aria-busy={pending}
       onKeyDown={(e) => {
         // Enter in the title saves; Enter elsewhere (account/owner pickers) does not.
+        // CE nit 1: an IME composition Enter commits the composition, not the form.
+        if (e.nativeEvent.isComposing || e.keyCode === 229) return;
         if (
           e.key === "Enter" &&
           (e.target as HTMLElement).getAttribute("name") === "title"
@@ -181,6 +197,8 @@ const QuickAddFields = ({
           // FormDrawer focuses [data-autofocus] after it slides in (iOS).
           {...(variant === "drawer" ? { "data-autofocus": true } : {})}
           data-testid="quick-add-title"
+          // CE nit 2: app-side cap (no DB CHECK; that would be a migration).
+          maxLength={QUICK_ADD_TITLE_MAX}
           enterKeyHint="done"
         />
       </div>
