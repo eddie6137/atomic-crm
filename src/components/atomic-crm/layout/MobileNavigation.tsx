@@ -43,10 +43,21 @@ export const MobileNavigation = () => {
     currentPath = false;
   }
 
+  // CTO nit (v1d U2): hide the floating create + global bottom nav while the
+  // Client Actions drawer/sheet is open so they don't overlap Priority on iPhone.
+  const drawerOpen =
+    typeof document !== "undefined" &&
+    document.body.dataset.eosDrawerOpen === "1";
+  // Re-render on dataset changes via a cheap poll of location+search (drawer uses URL ?item=).
+  const itemOpen = /(?:\?|&)item=/.test(location.search + location.hash);
+
+  if (drawerOpen || itemOpen) return null;
+
   return (
     <nav
       aria-label={translate("crm.navigation.label")}
       className="fixed bottom-0 left-0 right-0 z-50 bg-secondary h-14"
+      data-testid="mobile-navigation"
       style={{
         // Safe-area inset (needs viewport-fit=cover) replaces the old iOS-PWA-only 15px hack.
         paddingBottom: "env(safe-area-inset-bottom)",

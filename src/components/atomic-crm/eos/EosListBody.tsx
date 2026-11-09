@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   RecordContextProvider,
   useCreatePath,
@@ -12,6 +12,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { DueField, LinksField } from "./EosShared";
 import { EosBulkToolbar, type BulkField } from "./EosBulkActions";
 import { HIGHLIGHT_CLASS } from "./clientActions";
+import { useScrollToHighlightOnce } from "./useScrollToHighlightOnce";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -44,15 +45,8 @@ export const EosListBody = ({
   const [selecting, setSelecting] = useState(false);
   const resource = useResourceContext();
   const createPath = useCreatePath();
-  useEffect(() => {
-    if (!highlightId || isPending) return;
-    const t = setTimeout(() => {
-      document
-        .querySelector(`.${HIGHLIGHT_CLASS}`)
-        ?.scrollIntoView?.({ block: "center", behavior: "smooth" });
-    }, 150);
-    return () => clearTimeout(t);
-  }, [highlightId, isPending, data]);
+  // CE nit D: scroll once per highlight id (refetch must not re-scroll).
+  useScrollToHighlightOnce(highlightId, !isPending);
   if (!isMobile) return <>{children}</>;
   if (isPending)
     return (

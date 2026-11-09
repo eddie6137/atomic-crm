@@ -5,6 +5,7 @@ import {
   useGetOne,
   useListContext,
   useRecordContext,
+  useStore,
 } from "ra-core";
 import { Link } from "react-router";
 import { Plus, X } from "lucide-react";
@@ -36,6 +37,7 @@ import {
 import { usePTDate } from "./usePTDate";
 import { QuickDirection } from "./QuickDirection";
 import { ActionDrawer } from "./ActionDrawer";
+import { ClientActionsBoard } from "./ClientActionsBoard";
 import {
   clientActionsListKey,
   neighbourIds,
@@ -64,6 +66,7 @@ export const ClientActionsPage = () => {
     companyId,
     unclassified,
     status,
+    view,
     item,
     highlight: newId,
     setClientActionsParams,
@@ -71,6 +74,35 @@ export const ClientActionsPage = () => {
     replaceItem,
     closeItem,
   } = useClientActionsState();
+  // D1: last view choice in ra store; URL wins. Restore from store when URL has no view.
+  const [storedView, setStoredView] = useStore<"list" | "board">(
+    "client-actions.view",
+    "list",
+  );
+  useEffect(() => {
+    // Persist whenever URL view changes.
+    if (view !== storedView) setStoredView(view);
+  }, [view]); // eslint-disable-line react-hooks/exhaustive-deps -- store write only on URL change
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    // Hash router: search is after #/...?
+    const hash = window.location.hash || "";
+    const qi = hash.indexOf("?");
+    const fromHash = qi >= 0 ? new URLSearchParams(hash.slice(qi + 1)) : sp;
+    if (!fromHash.get("view") && storedView === "board") {
+      setClientActionsParams({ view: "board" });
+    }
+    // once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // CTO nit: hide floating/global mobile nav while the drawer/sheet is open.
+  useEffect(() => {
+    if (item) document.body.dataset.eosDrawerOpen = "1";
+    else delete document.body.dataset.eosDrawerOpen;
+    return () => {
+      delete document.body.dataset.eosDrawerOpen;
+    };
+  }, [item]);
   const { identity, isPending: idPending } = useGetIdentity();
   // PT date drives week/overdue bounds; recomputed at PT midnight and on focus.
   const ptDate = usePTDate();
@@ -134,7 +166,9 @@ export const ClientActionsPage = () => {
       <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
         <span>{tabHint(tab, ptDate)}</span>
         {companyId && <CompanyChip id={companyId} onClear={clearCompany} />}
-        {status && <StatusChip status={status} onClear={clearStatus} />}
+        {view === "list" && status && (
+          <StatusChip status={status} onClear={clearStatus} />
+        )}
         {tab !== "waiting" && (
           <UnclassifiedChip
             tab={tab}
@@ -145,6 +179,31 @@ export const ClientActionsPage = () => {
             onToggle={toggleUnclassified}
           />
         )}
+        <div
+          className="inline-flex rounded-md border overflow-hidden"
+          role="group"
+          aria-label="List or board"
+          data-testid="client-actions-view-toggle"
+        >
+          <button
+            type="button"
+            aria-pressed={view === "list"}
+            data-testid="client-actions-view-list"
+            className={`px-3 min-h-11 md:min-h-8 text-sm ${view === "list" ? "bg-primary text-primary-foreground" : ""}`}
+            onClick={() => setClientActionsParams({ view: "list" })}
+          >
+            List
+          </button>
+          <button
+            type="button"
+            aria-pressed={view === "board"}
+            data-testid="client-actions-view-board"
+            className={`px-3 min-h-11 md:min-h-8 text-sm ${view === "board" ? "bg-primary text-primary-foreground" : ""}`}
+            onClick={() => setClientActionsParams({ view: "board" })}
+          >
+            Board
+          </button>
+        </div>
         <Link
           to="/tasks"
           className="ml-auto underline min-h-11 inline-flex items-center"
@@ -164,7 +223,7 @@ export const ClientActionsPage = () => {
         </p>
       ) : (
         <List
-          // D1: item and view are never in the key, so opening the drawer never remounts the List.
+          // D1: item and view are never in the key, so opening the drawer / toggling view never remounts the List.
           key={clientActionsListKey(
             { tab, companyId, unclassified, status, highlight: newId },
             ptDate,
@@ -176,6 +235,8 @@ export const ClientActionsPage = () => {
           storeKey={clientActionsStoreKey(tab, newId)}
           disableSyncWithLocation
           filter={filter}
+          pagination={view === "board" ? false : undefined}
+          perPage={view === "board" ? 1 : undefined}
           filters={[
             <SearchInput source="q" alwaysOn key="q" />,
             ...(companyId
@@ -227,47 +288,59 @@ export const ClientActionsPage = () => {
           }
         >
           <ListIdsReporter onIds={setPageIds} />
-          <EosListBody
-            highlightId={newId}
-            onOpenItem={openItem}
-            bulkFields={COMMITMENT_BULK}
-            cardActions={() => (
-              <>
-                <span className="text-muted-foreground">Direction</span>
-                <QuickDirection />
-              </>
-            )}
-          >
-            <DataTable
-              // v1d U1: a row click opens the detail drawer (?item=), not the edit page.
-              rowClick={(id) => {
-                openItem(id);
-                return false;
-              }}
-              rowClassName={(r) =>
-                newId != null && String(r.id) === newId
-                  ? `bg-primary/10 font-medium ${HIGHLIGHT_CLASS}`
-                  : undefined
+          {view === "board" ? (
+            <ClientActionsBoard
+              highlightId={newId}
+              onOpenItem={openItem}
+              permanentFilter={filter}
+              onIds={setPageIds}
+              onShowCompletedInList={() =>
+                setClientActionsParams({ view: "list", status: "completed" })
               }
-              bulkActionsToolbar={<EosBulkToolbar fields={COMMITMENT_BULK} />}
+            />
+          ) : (
+            <EosListBody
+              highlightId={newId}
+              onOpenItem={openItem}
+              bulkFields={COMMITMENT_BULK}
+              cardActions={() => (
+                <>
+                  <span className="text-muted-foreground">Direction</span>
+                  <QuickDirection />
+                </>
+              )}
             >
-              <DataTable.Col source="title">
-                <OpenItemTitle onOpen={openItem} />
-              </DataTable.Col>
-              {CommonCols()}
-              <DataTable.Col source="status" />
-              <DataTable.Col source="direction" label="Direction">
-                <QuickDirection />
-              </DataTable.Col>
-              <DataTable.Col source="due_date" label="Due">
-                <DueField />
-              </DataTable.Col>
-              <DataTable.Col source="priority" />
-              <DataTable.Col label="Links / files">
-                <LinksField />
-              </DataTable.Col>
-            </DataTable>
-          </EosListBody>
+              <DataTable
+                // v1d U1: a row click opens the detail drawer (?item=), not the edit page.
+                rowClick={(id) => {
+                  openItem(id);
+                  return false;
+                }}
+                rowClassName={(r) =>
+                  newId != null && String(r.id) === newId
+                    ? `bg-primary/10 font-medium ${HIGHLIGHT_CLASS}`
+                    : undefined
+                }
+                bulkActionsToolbar={<EosBulkToolbar fields={COMMITMENT_BULK} />}
+              >
+                <DataTable.Col source="title">
+                  <OpenItemTitle onOpen={openItem} />
+                </DataTable.Col>
+                {CommonCols()}
+                <DataTable.Col source="status" />
+                <DataTable.Col source="direction" label="Direction">
+                  <QuickDirection />
+                </DataTable.Col>
+                <DataTable.Col source="due_date" label="Due">
+                  <DueField />
+                </DataTable.Col>
+                <DataTable.Col source="priority" />
+                <DataTable.Col label="Links / files">
+                  <LinksField />
+                </DataTable.Col>
+              </DataTable>
+            </EosListBody>
+          )}
         </List>
       )}
       <ActionDrawer

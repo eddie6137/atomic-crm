@@ -26,7 +26,8 @@ import {
   inlinePatch,
   type InlineField,
 } from "./actionDrawerWrites";
-import { COMMITMENT_STATUSES, PRIORITIES } from "./constants";
+import { PRIORITIES } from "./constants";
+import { StatusSelectOptions } from "./StatusSelectOptions";
 import {
   CompanyInput,
   ExistingAttachments,
@@ -36,7 +37,6 @@ import {
 import { QuickDirection } from "./QuickDirection";
 
 const RESOURCE = "eos_commitments";
-const human = (v: string) => v.replace(/_/g, " ");
 const selectClass =
   "min-h-11 md:min-h-9 w-full rounded-md border bg-background text-foreground scheme-light dark:scheme-dark px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-60";
 
@@ -195,13 +195,7 @@ const ActionDetail = ({
                 disabled={save.isPending}
                 onChange={(e) => save.run("status", e.target.value)}
               >
-                {COMMITMENT_STATUSES.filter(
-                  (s) => s !== "lapsed" || record.status === "lapsed",
-                ).map((s) => (
-                  <option key={s} value={s} disabled={s === "lapsed"}>
-                    {human(s)}
-                  </option>
-                ))}
+                <StatusSelectOptions current={record.status} />
               </select>
             </Labeled>
             <Labeled label="Priority" htmlFor="action-drawer-priority">
