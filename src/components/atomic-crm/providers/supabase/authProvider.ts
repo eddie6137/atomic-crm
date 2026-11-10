@@ -24,7 +24,7 @@ const getBaseAuthProvider = () =>
 // To speed up checks, we cache the initialization state
 // and the current sale in the local storage. They are cleared on logout.
 const IS_INITIALIZED_CACHE_KEY = "RaStore.auth.is_initialized";
-const CURRENT_SALE_CACHE_KEY = "RaStore.auth.current_sale";
+export const CURRENT_SALE_CACHE_KEY = "RaStore.auth.current_sale";
 
 function getLocalStorage(): Storage | null {
   if (typeof window !== "undefined" && window.localStorage) {
@@ -55,45 +55,87 @@ export async function getIsInitialized() {
   return isInitialized;
 }
 
+export type SalePermissions = { administrator?: boolean | null };
+
 export const permissionsFromSale = (
-  sale: { administrator?: boolean } | null | undefined,
+  sale: SalePermissions | null | undefined,
 ): "admin" | "user" | undefined =>
   sale == null ? undefined : sale.administrator ? "admin" : "user";
 
-const getSale = async () => {
-  const storage = getLocalStorage();
-  const cachedValue = storage?.getItem(CURRENT_SALE_CACHE_KEY);
-  if (cachedValue != null) {
-    return JSON.parse(cachedValue);
-  }
+export const saleCacheKey = (userId: string) =>
+  `${CURRENT_SALE_CACHE_KEY}.${userId}`;
 
-  const { data: dataSession, error: errorSession } =
-    await getSupabaseClient().auth.getSession();
-
-  // Shouldn't happen after login but just in case
-  if (dataSession?.session?.user == null || errorSession) {
+/** Fail closed: corrupt localStorage must not throw or grant admin. */
+export const parseSaleCache = (raw: string): unknown | undefined => {
+  try {
+    return JSON.parse(raw);
+  } catch {
     return undefined;
   }
-
-  const { data: dataSale, error: errorSale } = await getSupabaseClient()
-    .from("sales")
-    .select("id, first_name, last_name, avatar, administrator")
-    .match({ user_id: dataSession?.session?.user.id })
-    .single();
-
-  // Shouldn't happen either as all users are sales but just in case
-  if (dataSale == null || errorSale) {
-    return undefined;
-  }
-
-  storage?.setItem(CURRENT_SALE_CACHE_KEY, JSON.stringify(dataSale));
-  return dataSale;
 };
 
-function clearCache() {
+export const getSale = async () => {
+  try {
+    const storage = getLocalStorage();
+    const { data: dataSession, error: errorSession } =
+      await getSupabaseClient().auth.getSession();
+
+    // Need the user id before reading cache so a leftover row cannot leak.
+    if (dataSession?.session?.user == null || errorSession) {
+      return undefined;
+    }
+    const userId = dataSession.session.user.id;
+    const key = saleCacheKey(userId);
+    const cachedValue = storage?.getItem(key);
+    if (cachedValue != null) {
+      const parsed = parseSaleCache(cachedValue);
+      if (parsed !== undefined) return parsed;
+      storage?.removeItem(key);
+    }
+
+    const { data: dataSale, error: errorSale } = await getSupabaseClient()
+      .from("sales")
+      .select("id, first_name, last_name, avatar, administrator")
+      .match({ user_id: userId })
+      .single();
+
+    if (dataSale == null || errorSale) {
+      return undefined;
+    }
+
+    storage?.setItem(key, JSON.stringify(dataSale));
+    return dataSale;
+  } catch {
+    return undefined;
+  }
+};
+
+/** getPermissions wrapper: any throw (including a cache parse) is not-admin. */
+export const resolvePermissions = async (
+  loadSale: () => Promise<SalePermissions | null | undefined> = getSale,
+): Promise<"admin" | "user" | undefined> => {
+  try {
+    return permissionsFromSale(await loadSale());
+  } catch {
+    return undefined;
+  }
+};
+
+export function clearAuthCaches() {
   const storage = getLocalStorage();
-  storage?.removeItem(IS_INITIALIZED_CACHE_KEY);
-  storage?.removeItem(CURRENT_SALE_CACHE_KEY);
+  if (!storage) return;
+  storage.removeItem(IS_INITIALIZED_CACHE_KEY);
+  const toRemove: string[] = [];
+  for (let i = 0; i < storage.length; i++) {
+    const key = storage.key(i);
+    if (
+      key === CURRENT_SALE_CACHE_KEY ||
+      key?.startsWith(`${CURRENT_SALE_CACHE_KEY}.`)
+    ) {
+      toRemove.push(key);
+    }
+  }
+  for (const key of toRemove) storage.removeItem(key);
 }
 
 export const getAuthProvider = (): AuthProvider => {
@@ -101,6 +143,7 @@ export const getAuthProvider = (): AuthProvider => {
   return {
     ...baseAuthProvider,
     login: async (params) => {
+      clearAuthCaches();
       if (params.ssoDomain) {
         const { error } = await getSupabaseClient().auth.signInWithSSO({
           domain: params.ssoDomain,
@@ -113,7 +156,7 @@ export const getAuthProvider = (): AuthProvider => {
       return baseAuthProvider.login(params);
     },
     logout: async (params) => {
-      clearCache();
+      clearAuthCaches();
       return baseAuthProvider.logout(params);
     },
     checkAuth: async (params) => {
@@ -151,7 +194,7 @@ export const getAuthProvider = (): AuthProvider => {
 
       return baseAuthProvider.checkAuth(params);
     },
-    getPermissions: async () => permissionsFromSale(await getSale()),
+    getPermissions: async () => resolvePermissions(),
     canAccess: async (params) => {
       const isInitialized = await getIsInitialized();
       if (isInitialized === false) return false;
