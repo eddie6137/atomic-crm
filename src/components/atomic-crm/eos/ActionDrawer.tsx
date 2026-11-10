@@ -21,6 +21,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { FormDrawer } from "../misc/FormDrawer";
 import { ActionActivity } from "./ActionActivity";
 import { ActionComments } from "./ActionComments";
+import { AomLinkPanel } from "./AomLinkPanel";
+import { useAomMap } from "./useAomWriteBack";
 import {
   accountEditable,
   inlinePatch,
@@ -145,6 +147,8 @@ const ActionDetail = ({
     error,
   } = useGetOne(RESOURCE, { id }, { retry: false });
   const save = useInlineSave(record);
+  // AOM-originated work (link map row present): title/account/status are AOM-owned, read-only here.
+  const { aom } = useAomMap(record?.id);
 
   let content: ReactNode;
   if (isPending) {
@@ -174,8 +178,36 @@ const ActionDetail = ({
           className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-4 p-4 pr-14 md:pr-4"
           data-testid="action-drawer-body"
         >
-          <InlineTitle record={record} save={save.run} />
-          <AccountField record={record} save={save.run} />
+          {aom ? (
+            <ReadOnly label="Title">
+              <p
+                className="text-lg font-semibold text-foreground break-words"
+                data-testid="action-drawer-title-readonly"
+              >
+                {record.title}
+              </p>
+            </ReadOnly>
+          ) : (
+            <InlineTitle record={record} save={save.run} />
+          )}
+          {aom ? (
+            <ReadOnly label="Account">
+              <div data-testid="action-drawer-account-locked">
+                {record.company_id ? (
+                  <ReferenceField
+                    source="company_id"
+                    reference="companies"
+                    link={false}
+                  />
+                ) : (
+                  "No account (needs review: client not mapped)"
+                )}
+              </div>
+            </ReadOnly>
+          ) : (
+            <AccountField record={record} save={save.run} />
+          )}
+          {aom && <AomLinkPanel record={record} aom={aom} />}
           {record.project_id && (
             <ReadOnly label="Project">
               <ReferenceField
@@ -186,18 +218,20 @@ const ActionDetail = ({
             </ReadOnly>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Labeled label="Status" htmlFor="action-drawer-status">
-              <select
-                id="action-drawer-status"
-                data-testid="action-drawer-status"
-                className={selectClass}
-                value={record.status ?? ""}
-                disabled={save.isPending}
-                onChange={(e) => save.run("status", e.target.value)}
-              >
-                <StatusSelectOptions current={record.status} />
-              </select>
-            </Labeled>
+            {!aom && (
+              <Labeled label="Status" htmlFor="action-drawer-status">
+                <select
+                  id="action-drawer-status"
+                  data-testid="action-drawer-status"
+                  className={selectClass}
+                  value={record.status ?? ""}
+                  disabled={save.isPending}
+                  onChange={(e) => save.run("status", e.target.value)}
+                >
+                  <StatusSelectOptions current={record.status} />
+                </select>
+              </Labeled>
+            )}
             <Labeled label="Priority" htmlFor="action-drawer-priority">
               <select
                 id="action-drawer-priority"

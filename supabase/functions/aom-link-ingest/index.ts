@@ -18,7 +18,10 @@ Deno.serve((req: Request) =>
           Deno.env.get("SUPABASE_URL") ?? "",
           Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
           { auth: { autoRefreshToken: false, persistSession: false } },
-        ).rpc(fn, args) as unknown as Promise<{ data: unknown; error: unknown }>,
+        ).rpc(fn, args) as unknown as Promise<{
+          data: unknown;
+          error: unknown;
+        }>,
     },
   ),
 );

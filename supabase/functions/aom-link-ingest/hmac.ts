@@ -42,7 +42,9 @@ export async function sign(
   audience: string,
   rawBody: string,
 ): Promise<string> {
-  const msg = [direction, timestamp, idempotencyKey, audience, rawBody].join("\n");
+  const msg = [direction, timestamp, idempotencyKey, audience, rawBody].join(
+    "\n",
+  );
   return `sha256=${await hmacHex(secret, msg)}`;
 }
 

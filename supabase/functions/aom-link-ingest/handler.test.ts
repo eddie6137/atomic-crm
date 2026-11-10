@@ -15,31 +15,59 @@ const ON = {
 function event(over: Record<string, unknown> = {}) {
   const id = randomUUID();
   return {
-    schema: 1, event_type: "upsert", namespace: "aom", source_key: `assignment:${id}`,
-    kind: "assignment", commitment_id: id, aom_client_id: randomUUID(),
-    aom_revision: "2026-11-10T12:00:00.123456Z", title: "[SYNTHETIC-SEED] Acme Brand action",
-    aom_status: "planned", deep_link_path: `/playbooks/assign?assignment=${id}`,
-    completed_at: null, ...over,
+    schema: 1,
+    event_type: "upsert",
+    namespace: "aom",
+    source_key: `assignment:${id}`,
+    kind: "assignment",
+    commitment_id: id,
+    aom_client_id: randomUUID(),
+    aom_revision: "2026-11-10T12:00:00.123456Z",
+    title: "[SYNTHETIC-SEED] Acme Brand action",
+    aom_status: "planned",
+    deep_link_path: `/playbooks/assign?assignment=${id}`,
+    completed_at: null,
+    ...over,
   };
 }
-const deliveryId = (e: any) => `aom:${e.source_key}:${e.event_type}:${e.aom_revision}`;
+const deliveryId = (e: any) =>
+  `aom:${e.source_key}:${e.event_type}:${e.aom_revision}`;
 
-async function req(e: any, o: {
-  secret?: string; ts?: number; audience?: string; direction?: LinkDirection; idem?: string;
-  unsigned?: boolean; method?: string;
-} = {}) {
+async function req(
+  e: any,
+  o: {
+    secret?: string;
+    ts?: number;
+    audience?: string;
+    direction?: LinkDirection;
+    idem?: string;
+    unsigned?: boolean;
+    method?: string;
+  } = {},
+) {
   const body = JSON.stringify(e);
   const ts = String(o.ts ?? Math.floor(Date.now() / 1000));
   const idem = o.idem ?? deliveryId(e);
   const aud = o.audience ?? AUD;
   const headers: Record<string, string> = {
-    "X-Aom-Link-Timestamp": ts, "X-Aom-Link-Idempotency-Key": idem, "X-Aom-Link-Audience": aud,
+    "X-Aom-Link-Timestamp": ts,
+    "X-Aom-Link-Idempotency-Key": idem,
+    "X-Aom-Link-Audience": aud,
   };
   if (!o.unsigned) {
-    headers["X-Aom-Link-Signature"] = await sign(o.secret ?? SECRET, o.direction ?? "aom-to-atomic", ts, idem, aud, body);
+    headers["X-Aom-Link-Signature"] = await sign(
+      o.secret ?? SECRET,
+      o.direction ?? "aom-to-atomic",
+      ts,
+      idem,
+      aud,
+      body,
+    );
   }
   return new Request("http://localhost/aom-link-ingest", {
-    method: o.method ?? "POST", headers, body: o.method === "GET" ? undefined : body,
+    method: o.method ?? "POST",
+    headers,
+    body: o.method === "GET" ? undefined : body,
   });
 }
 const mkDeps = (data: unknown = { result: "created" }) => ({
@@ -56,7 +84,10 @@ describe("aom-link-ingest handler", () => {
 
   it("405 on GET with zero rpc calls", async () => {
     const d = mkDeps();
-    expect((await handleRequest(await req(event(), { method: "GET" }), ON, d)).status).toBe(405);
+    expect(
+      (await handleRequest(await req(event(), { method: "GET" }), ON, d))
+        .status,
+    ).toBe(405);
     expect(d.rpc).not.toHaveBeenCalled();
   });
 
@@ -65,7 +96,10 @@ describe("aom-link-ingest handler", () => {
     ["bad signature", { secret: randomBytes(16).toString("hex") }],
     ["skewed (old)", { ts: Math.floor(Date.now() / 1000) - 301 }],
     ["skewed (future)", { ts: Math.floor(Date.now() / 1000) + 301 }],
-    ["wrong direction (write-back signature on a projection)", { direction: "atomic-to-aom" as const }],
+    [
+      "wrong direction (write-back signature on a projection)",
+      { direction: "atomic-to-aom" as const },
+    ],
   ])("401 %s: zero rpc calls", async (_n, o) => {
     const d = mkDeps();
     const res = await handleRequest(await req(event(), o), ON, d);
@@ -75,7 +109,11 @@ describe("aom-link-ingest handler", () => {
 
   it("401 when the server secret is missing (even with flag on)", async () => {
     const d = mkDeps();
-    const res = await handleRequest(await req(event()), { ...ON, ATOMIC_AOM_LINK_HMAC_SECRET: undefined }, d);
+    const res = await handleRequest(
+      await req(event()),
+      { ...ON, ATOMIC_AOM_LINK_HMAC_SECRET: undefined },
+      d,
+    );
     expect(res.status).toBe(401);
     expect(d.rpc).not.toHaveBeenCalled();
   });
@@ -86,22 +124,37 @@ describe("aom-link-ingest handler", () => {
     const r1 = await req(e);
     const h = new Headers(r1.headers);
     h.set("X-Aom-Link-Idempotency-Key", "aom:other");
-    const tampered = new Request(r1.url, { method: "POST", headers: h, body: await r1.text() });
+    const tampered = new Request(r1.url, {
+      method: "POST",
+      headers: h,
+      body: await r1.text(),
+    });
     expect((await handleRequest(tampered, ON, d)).status).toBe(401);
     expect(d.rpc).not.toHaveBeenCalled();
   });
 
-  it.each([undefined, "", "false", "0", "garbage"])("signed but flag %j => 403 link_off, zero rpc calls", async (flag) => {
-    const d = mkDeps();
-    const res = await handleRequest(await req(event()), { ...ON, ATOMIC_AOM_LINK_ENABLED: flag }, d);
-    expect(res.status).toBe(403);
-    expect(await res.json()).toEqual({ error: "link_off" });
-    expect(d.rpc).not.toHaveBeenCalled();
-  });
+  it.each([undefined, "", "false", "0", "garbage"])(
+    "signed but flag %j => 403 link_off, zero rpc calls",
+    async (flag) => {
+      const d = mkDeps();
+      const res = await handleRequest(
+        await req(event()),
+        { ...ON, ATOMIC_AOM_LINK_ENABLED: flag },
+        d,
+      );
+      expect(res.status).toBe(403);
+      expect(await res.json()).toEqual({ error: "link_off" });
+      expect(d.rpc).not.toHaveBeenCalled();
+    },
+  );
 
   it("signed, flag on, wrong audience => 403, zero rpc calls", async () => {
     const d = mkDeps();
-    const res = await handleRequest(await req(event(), { audience: "prod-audience" }), ON, d);
+    const res = await handleRequest(
+      await req(event(), { audience: "prod-audience" }),
+      ON,
+      d,
+    );
     expect(res.status).toBe(403);
     expect(await res.json()).toEqual({ error: "wrong_audience" });
     expect(d.rpc).not.toHaveBeenCalled();
@@ -110,7 +163,15 @@ describe("aom-link-ingest handler", () => {
   it("flag is read per call: same handler, off then on", async () => {
     const d = mkDeps();
     const e = event();
-    expect((await handleRequest(await req(e), { ...ON, ATOMIC_AOM_LINK_ENABLED: "false" }, d)).status).toBe(403);
+    expect(
+      (
+        await handleRequest(
+          await req(e),
+          { ...ON, ATOMIC_AOM_LINK_ENABLED: "false" },
+          d,
+        )
+      ).status,
+    ).toBe(403);
     expect((await handleRequest(await req(e), ON, d)).status).toBe(200);
     expect(d.rpc).toHaveBeenCalledTimes(1);
   });
@@ -130,7 +191,11 @@ describe("aom-link-ingest handler", () => {
 
   it("422 when the idempotency key is not the delivery id", async () => {
     const d = mkDeps();
-    const res = await handleRequest(await req(event(), { idem: "aom:wrong" }), ON, d);
+    const res = await handleRequest(
+      await req(event(), { idem: "aom:wrong" }),
+      ON,
+      d,
+    );
     expect(res.status).toBe(422);
     expect(d.rpc).not.toHaveBeenCalled();
   });
@@ -150,9 +215,18 @@ describe("aom-link-ingest handler", () => {
 
   it("conflict result => 409; rpc failure => 502 without detail", async () => {
     const e = event();
-    const r = await handleRequest(await req(e), ON, mkDeps({ result: "conflict", reason: "uuid_non_aom" }));
+    const r = await handleRequest(
+      await req(e),
+      ON,
+      mkDeps({ result: "conflict", reason: "uuid_non_aom" }),
+    );
     expect(r.status).toBe(409);
-    const bad = { rpc: vi.fn(async () => ({ data: null, error: { message: "secret internals" } })) };
+    const bad = {
+      rpc: vi.fn(async () => ({
+        data: null,
+        error: { message: "secret internals" },
+      })),
+    };
     const r2 = await handleRequest(await req(e), ON, bad);
     expect(r2.status).toBe(502);
     expect(JSON.stringify(await r2.json())).not.toContain("secret internals");

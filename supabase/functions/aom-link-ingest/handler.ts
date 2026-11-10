@@ -33,24 +33,39 @@ const json = (body: unknown, status: number) =>
   });
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const STATUSES = ["planned", "in_progress", "completed", "skipped", "cancelled"];
+const STATUSES = [
+  "planned",
+  "in_progress",
+  "completed",
+  "skipped",
+  "cancelled",
+];
 
 export function validateEvent(p: any, idem: string): boolean {
   if (!p || typeof p !== "object") return false;
   if (p.schema !== 1 || p.namespace !== "aom") return false;
   if (!["upsert", "archive"].includes(p.event_type)) return false;
   if (!["assignment", "custom"].includes(p.kind)) return false;
-  if (typeof p.commitment_id !== "string" || !UUID.test(p.commitment_id)) return false;
+  if (typeof p.commitment_id !== "string" || !UUID.test(p.commitment_id))
+    return false;
   if (p.source_key !== `${p.kind}:${p.commitment_id}`) return false;
-  if (typeof p.aom_client_id !== "string" || !UUID.test(p.aom_client_id)) return false;
-  if (typeof p.aom_revision !== "string" || p.aom_revision.length < 10) return false;
-  if (typeof p.title !== "string" || p.title.trim() === "" || p.title.length > 500) return false;
+  if (typeof p.aom_client_id !== "string" || !UUID.test(p.aom_client_id))
+    return false;
+  if (typeof p.aom_revision !== "string" || p.aom_revision.length < 10)
+    return false;
+  if (
+    typeof p.title !== "string" ||
+    p.title.trim() === "" ||
+    p.title.length > 500
+  )
+    return false;
   if (!STATUSES.includes(p.aom_status)) return false;
   if (
     typeof p.deep_link_path !== "string" ||
     !p.deep_link_path.startsWith("/") ||
     p.deep_link_path.startsWith("//")
-  ) return false;
+  )
+    return false;
   return idem === `aom:${p.source_key}:${p.event_type}:${p.aom_revision}`;
 }
 
@@ -80,7 +95,10 @@ export async function handleRequest(
   if (!isLinkEnabled(env.ATOMIC_AOM_LINK_ENABLED)) {
     return json({ error: "link_off" }, 403);
   }
-  if (!env.ATOMIC_AOM_LINK_AUDIENCE || audience !== env.ATOMIC_AOM_LINK_AUDIENCE) {
+  if (
+    !env.ATOMIC_AOM_LINK_AUDIENCE ||
+    audience !== env.ATOMIC_AOM_LINK_AUDIENCE
+  ) {
     return json({ error: "wrong_audience" }, 403);
   }
 
@@ -90,7 +108,8 @@ export async function handleRequest(
   } catch {
     return json({ error: "invalid_request" }, 422);
   }
-  if (!validateEvent(event, idem!)) return json({ error: "invalid_request" }, 422);
+  if (!validateEvent(event, idem!))
+    return json({ error: "invalid_request" }, 422);
 
   const { data, error } = await deps.rpc("eos_aom_link_apply", {
     p_delivery_id: idem,
