@@ -17,7 +17,7 @@ export const fixtureIntake: FixtureIntake[] = [
     subject: "Re: listing copy refresh",
     from_addr: "buyer@client.example.invalid",
     excerpt: "Can you send the revised listing copy by next Friday?",
-    account: "Acme Widgets (Synthetic)",
+    account: "[Demo] Acme Widgets (Synthetic)",
     suggested_title: "Send revised listing copy",
     suggested_due_offset_days: 7,
     triage_label: "action",
@@ -35,7 +35,7 @@ export const fixtureIntake: FixtureIntake[] = [
     subject: "FYI: they renewed",
     from_addr: "ops@client.example.invalid",
     excerpt: "FYI the renewal went through, no changes to scope.",
-    account: "Acme Widgets (Synthetic)",
+    account: "[Demo] Acme Widgets (Synthetic)",
     triage_label: "fyi",
   },
 ];

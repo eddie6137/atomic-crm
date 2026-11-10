@@ -1,7 +1,8 @@
 -- Rollback for migrations/20261109190000_eos_intake_p1_admin_guards.sql.
--- Drops the attribution guard trigger/function and restores the P1 member-callable fixture RPC.
+-- Drops the attribution guard trigger/function and drops the admin fixture wrapper and restores the P1 fixture RPC grants.
 -- Does NOT drop P1 tables or columns. Run by hand only on CTO direction.
 begin;
+drop function if exists public.eos_intake_insert_fixture_admin(text,text,text,text,bigint,boolean,text,bigint,date,text);
 drop trigger if exists eos_companies_attribution_admin_only on public.companies;
 drop function if exists public.eos_companies_attribution_guard();
 create or replace function public.eos_intake_insert_fixture(
@@ -29,5 +30,5 @@ begin
 end $$;
 
 revoke all on function public.eos_intake_insert_fixture(text,text,text,text,bigint,boolean,text,bigint,date,text) from public, anon;
-grant execute on function public.eos_intake_insert_fixture(text,text,text,text,bigint,boolean,text,bigint,date,text) to authenticated;
+grant execute on function public.eos_intake_insert_fixture(text,text,text,text,bigint,boolean,text,bigint,date,text) to service_role, authenticated;
 commit;

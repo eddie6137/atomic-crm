@@ -16,10 +16,10 @@ begin
 
   -- fixture insert is idempotent on fingerprint (same source_ref + normalized excerpt -> same id)
   perform set_config('request.jwt.claims', json_build_object('sub', adm, 'role', 'authenticated')::text, true);
-  i1 := public.eos_intake_insert_fixture('t-1', 'Subj', 'x@client.test', 'Please send the deck', null, null, 'Send deck', sid, today + 3);
+  i1 := public.eos_intake_insert_fixture_admin('t-1', 'Subj', 'x@client.test', 'Please send the deck', null, null, 'Send deck', sid, today + 3);
   perform set_config('request.jwt.claims', json_build_object('sub', team, 'role', 'authenticated')::text, true);
   perform set_config('request.jwt.claims', json_build_object('sub', adm, 'role', 'authenticated')::text, true);
-  i2 := public.eos_intake_insert_fixture('t-1', 'Subj', 'x@client.test', '  please SEND the deck ', null);
+  i2 := public.eos_intake_insert_fixture_admin('t-1', 'Subj', 'x@client.test', '  please SEND the deck ', null);
   perform set_config('request.jwt.claims', json_build_object('sub', team, 'role', 'authenticated')::text, true);
   select count(*) into n from public.eos_intake_items where source_ref = 't-1';
   if i1 = i2 and n = 1 then passed := passed + 1; else f := f || ' FAIL fixture-dedupe n=' || n; end if;
@@ -49,7 +49,7 @@ begin
   exception when others then if sqlerrm like '%Needs client%' then passed := passed + 1; else f := f || ' FAIL needs-client msg: ' || sqlerrm; end if; end;
   -- owner and due date are required
   perform set_config('request.jwt.claims', json_build_object('sub', adm, 'role', 'authenticated')::text, true);
-  i3 := public.eos_intake_insert_fixture('t-3', 'S3', null, 'no owner no due', comp);
+  i3 := public.eos_intake_insert_fixture_admin('t-3', 'S3', null, 'no owner no due', comp);
   perform set_config('request.jwt.claims', json_build_object('sub', team, 'role', 'authenticated')::text, true);
   begin perform public.eos_intake_accept_action(i3, '{"title":"T3"}'); f := f || ' FAIL accept without owner';
   exception when others then if sqlerrm like '%owner required%' then passed := passed + 1; else f := f || ' FAIL owner msg: ' || sqlerrm; end if; end;
@@ -66,7 +66,7 @@ begin
 
   -- Reject sets status + server-side decided_by; an accepted item cannot be rejected
   perform set_config('request.jwt.claims', json_build_object('sub', adm, 'role', 'authenticated')::text, true);
-  i4 := public.eos_intake_insert_fixture('t-4', 'S4', null, 'noise', comp);
+  i4 := public.eos_intake_insert_fixture_admin('t-4', 'S4', null, 'noise', comp);
   perform set_config('request.jwt.claims', json_build_object('sub', team, 'role', 'authenticated')::text, true);
   perform public.eos_intake_reject(i4);
   select triage_status into st from public.eos_intake_items where id = i4 and decided_by = sid and decided_at is not null;
@@ -76,7 +76,7 @@ begin
 
   -- Accept FYI writes eos_account_fyi once
   perform set_config('request.jwt.claims', json_build_object('sub', adm, 'role', 'authenticated')::text, true);
-  i5 := public.eos_intake_insert_fixture('t-5', 'S5', null, 'FYI: they renewed', comp);
+  i5 := public.eos_intake_insert_fixture_admin('t-5', 'S5', null, 'FYI: they renewed', comp);
   perform set_config('request.jwt.claims', json_build_object('sub', team, 'role', 'authenticated')::text, true);
   a := public.eos_intake_accept_fyi(i5, '{}'); b := public.eos_intake_accept_fyi(i5, '{}');
   select count(*) into n from public.eos_account_fyi where intake_id = i5 and company_id = comp and created_by = sid;

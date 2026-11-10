@@ -8,6 +8,7 @@ import { getSupabaseClient } from "../../providers/supabase/supabase";
 import { EosNav } from "../EosNav";
 import { addDays, todayPT } from "../constants";
 import { fixtureIntake } from "./fixtureIntake";
+import { isIntakeUiEnabled } from "./intake";
 import {
   acceptActionBlocker,
   acceptFyiBlocker,
@@ -45,7 +46,7 @@ export const InboxPage = () => {
   const { data: sales = [] } = useGetList("sales", {
     pagination: { page: 1, perPage: 500 },
     sort: { field: "id", order: "ASC" },
-    filter: {},
+    filter: { "disabled@neq": true },
   });
 
   const loadFixture = async () => {
@@ -55,7 +56,7 @@ export const InboxPage = () => {
         (c: any) => norm(c.name) === norm(f.account),
       );
       const { error } = await getSupabaseClient().rpc(
-        "eos_intake_insert_fixture",
+        "eos_intake_insert_fixture_admin",
         {
           p_source_ref: f.source_ref,
           p_subject: f.subject,
@@ -85,7 +86,7 @@ export const InboxPage = () => {
       <EosNav />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-xl font-semibold">Inbox</h2>
-        {permissions === "admin" ? (
+        {isIntakeUiEnabled() && permissions === "admin" ? (
           <Button
             variant="outline"
             size="sm"
