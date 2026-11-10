@@ -43,7 +43,16 @@ method and path stops a captured body being replayed against a different verb or
 
 `deep_link_path` is stored and sent as an app-relative path (`/…`, never `//…`). Ingest verifies the HMAC over the
 raw body first, then normalizes an absolute `http(s)` URL to its pathname + search + hash before validation and the
-RPC. Other schemes, protocol-relative values, and empty/whitespace values are rejected (422 `invalid_request`).
+RPC. Other schemes, protocol-relative values (`//…`), `/\…`, and empty/whitespace values are rejected (422 `invalid_request`).
+
+- **Fail closed:** if `normalizeDeepLinkPath` (`supabase/functions/_shared/deepLink.ts`) returns null for a non-empty value,
+  ingest returns 422 `invalid_request` and never calls the RPC; the raw value is not stored. `validateEvent` uses the same helper.
+- **Cap:** the normalized path is at most 2048 characters.
+- **Controls / whitespace:** C0 controls and DEL (incl. CR/LF/tab) and leading/trailing whitespace are rejected, not trimmed.
+- **UI:** `aomHref` uses the same helper and only builds a link when the configured origin is a valid `http:`/`https:` URL;
+  otherwise the panel shows the path as text.
+- **SQL:** `migrations/20261110130000_aom_link_deep_link_check.sql` (+ `rollbacks/…down.sql`) adds a matching strict CHECK.
+  It is local-only, not applied anywhere, and waits for the next approved staging window.
 
 ## Local test
 

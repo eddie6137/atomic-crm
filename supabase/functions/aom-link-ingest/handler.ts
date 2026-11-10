@@ -8,6 +8,7 @@ import {
   TIMESTAMP_HEADER,
   verify,
 } from "./hmac.ts";
+import { normalizeDeepLinkPath } from "../_shared/deepLink.ts";
 
 export interface IngestEnv {
   ATOMIC_AOM_LINK_ENABLED?: string;
@@ -41,29 +42,7 @@ const STATUSES = [
   "cancelled",
 ];
 
-/**
- * Reduce a deep link to an app-relative path. Relative `/…` (not `//…`) passes through unchanged;
- * absolute http(s) URLs become pathname+search+hash. Anything else returns null.
- */
-export function normalizeDeepLinkPath(v: unknown): string | null {
-  if (typeof v !== "string") return null;
-  let out: string;
-  if (/^https?:\/\//i.test(v)) {
-    let u: URL;
-    try {
-      u = new URL(v);
-    } catch {
-      return null;
-    }
-    out = u.pathname + u.search + u.hash;
-  } else {
-    out = v;
-  }
-  if (!out.startsWith("/") || out.startsWith("//") || out.startsWith("/\\")) {
-    return null;
-  }
-  return out;
-}
+export { normalizeDeepLinkPath };
 
 export function validateEvent(p: any, idem: string): boolean {
   if (!p || typeof p !== "object") return false;
@@ -86,8 +65,7 @@ export function validateEvent(p: any, idem: string): boolean {
   if (!STATUSES.includes(p.aom_status)) return false;
   if (
     typeof p.deep_link_path !== "string" ||
-    !p.deep_link_path.startsWith("/") ||
-    p.deep_link_path.startsWith("//")
+    normalizeDeepLinkPath(p.deep_link_path) !== p.deep_link_path
   )
     return false;
   return idem === `aom:${p.source_key}:${p.event_type}:${p.aom_revision}`;
@@ -136,9 +114,11 @@ export async function handleRequest(
     return json({ error: "invalid_request" }, 422);
   }
   // Normalize AFTER the HMAC verify (signature is over the raw body, unchanged).
+  // Fail closed: a value the helper rejects is never stored, even if it looks path-like.
   if (event && typeof event === "object") {
     const normalized = normalizeDeepLinkPath(event.deep_link_path);
-    if (normalized !== null) event.deep_link_path = normalized;
+    if (normalized === null) return json({ error: "invalid_request" }, 422);
+    event.deep_link_path = normalized;
   }
   if (!validateEvent(event, idem!))
     return json({ error: "invalid_request" }, 422);

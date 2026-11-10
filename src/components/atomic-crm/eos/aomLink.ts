@@ -2,6 +2,8 @@
 // Atomic only REQUESTS start / complete / skip through the signed write-back edge function and then
 // waits for AOM's accept + re-projection. Title, account, SOP, comments are not editable here.
 
+import { normalizeDeepLinkPath } from "../../../../supabase/functions/_shared/deepLink";
+
 export type AomAction = "start" | "complete" | "skip";
 
 export type AomMapRow = {
@@ -47,11 +49,22 @@ export const statusLabel = (record: {
     ? "Skipped"
     : String(record.status ?? "").replace(/_/g, " ");
 
-/** Absolute AOM deep link only when an origin is configured; otherwise null (path alone is not clickable). */
-export const aomHref = (path: string, origin?: string | null): string | null =>
-  origin && path.startsWith("/") && !path.startsWith("//")
-    ? `${origin.replace(/\/+$/, "")}${path}`
-    : null;
+/**
+ * Absolute AOM deep link, or null (the panel then shows the path as text). The path is run through
+ * the shared ingest helper; the origin must be a valid http(s) URL.
+ */
+export const aomHref = (path: string, origin?: string | null): string | null => {
+  const rel = normalizeDeepLinkPath(path);
+  if (!rel || !origin) return null;
+  let u: URL;
+  try {
+    u = new URL(origin.trim());
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+  return `${origin.trim().replace(/\/+$/, "")}${rel}`;
+};
 
 export type WriteBackResult =
   | { ok: true; result?: string; aom_status?: string | null }

@@ -212,6 +212,13 @@ describe("aom-link-ingest handler", () => {
     ["empty deep link", { deep_link_path: "" }],
     ["whitespace deep link", { deep_link_path: "   " }],
     ["protocol-relative deep link", { deep_link_path: "//evil.example/x" }],
+    ["slash-backslash deep link", { deep_link_path: "/\\evil.example" }],
+    ["mailto deep link", { deep_link_path: "mailto:a@b.example" }],
+    ["trailing newline", { deep_link_path: "/ok\n" }],
+    ["CRLF smuggle", { deep_link_path: "/ok\r\n//evil.example" }],
+    ["tab", { deep_link_path: "/\tevil" }],
+    ["trailing space", { deep_link_path: "/ok " }],
+    ["2049 chars", { deep_link_path: "/" + "a".repeat(2048) }],
     ["wrong namespace", { namespace: "other" }],
   ])("422 invalid body (%s): zero rpc calls", async (_n, over) => {
     const d = mkDeps();
@@ -290,11 +297,39 @@ describe("deep_link_path normalization", () => {
     "//evil.example/x",
     "https://host.example//evil.example",
     "/\\evil.example",
+    "/\\",
+    "mailto:a@b.example",
+    "/ok\n",
+    "/ok\r\n//evil.example",
+    "/\tevil",
+    "/a\u0000b",
+    "/a\u007fb",
+    "/ok ",
+    " /ok",
+    "https://host.example/ok\n",
     "",
     "   ",
     "relative/path",
   ])("rejects %j", (v) => {
     expect(normalizeDeepLinkPath(v)).toBeNull();
+  });
+  it("accepts 2048 chars, rejects 2049 (normalized length)", () => {
+    const ok = "/" + "a".repeat(2047);
+    expect(normalizeDeepLinkPath(ok)).toBe(ok);
+    expect(normalizeDeepLinkPath(ok + "a")).toBeNull();
+    expect(normalizeDeepLinkPath("https://h.example" + ok)).toBe(ok);
+    expect(normalizeDeepLinkPath("https://h.example" + ok + "a")).toBeNull();
+  });
+  it("ingest: 2048-char path is accepted (200), signed `/\\evil.example` is 422 with zero rpc", async () => {
+    const d = mkDeps();
+    const okPath = "/" + "a".repeat(2047);
+    expect((await handleRequest(await req(event({ deep_link_path: okPath })), ON, d)).status).toBe(200);
+    expect(d.rpc).toHaveBeenCalledTimes(1);
+    const d2 = mkDeps();
+    const res = await handleRequest(await req(event({ deep_link_path: "/\\evil.example" })), ON, d2);
+    expect(res.status).toBe(422);
+    expect(await res.json()).toEqual({ error: "invalid_request" });
+    expect(d2.rpc).not.toHaveBeenCalled();
   });
   it("rejects non-strings", () => {
     expect(normalizeDeepLinkPath(undefined)).toBeNull();
