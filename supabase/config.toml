@@ -172,3 +172,7 @@ verify_jwt = false
 verify_jwt = false
 [functions.mcp]
 verify_jwt = false
+[functions.aom-link-ingest]
+verify_jwt = false
+[functions.aom-link-writeback]
+verify_jwt = false
