@@ -31,4 +31,5 @@ end $$;
 
 revoke all on function public.eos_intake_insert_fixture(text,text,text,text,bigint,boolean,text,bigint,date,text) from public, anon;
 grant execute on function public.eos_intake_insert_fixture(text,text,text,text,bigint,boolean,text,bigint,date,text) to service_role, authenticated;
+delete from supabase_migrations.schema_migrations where name = 'eos_intake_p1_admin_guards';
 commit;
