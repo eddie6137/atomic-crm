@@ -55,6 +55,11 @@ export async function getIsInitialized() {
   return isInitialized;
 }
 
+export const permissionsFromSale = (
+  sale: { administrator?: boolean } | null | undefined,
+): "admin" | "user" | undefined =>
+  sale == null ? undefined : sale.administrator ? "admin" : "user";
+
 const getSale = async () => {
   const storage = getLocalStorage();
   const cachedValue = storage?.getItem(CURRENT_SALE_CACHE_KEY);
@@ -146,6 +151,7 @@ export const getAuthProvider = (): AuthProvider => {
 
       return baseAuthProvider.checkAuth(params);
     },
+    getPermissions: async () => permissionsFromSale(await getSale()),
     canAccess: async (params) => {
       const isInitialized = await getIsInitialized();
       if (isInitialized === false) return false;
@@ -155,7 +161,8 @@ export const getAuthProvider = (): AuthProvider => {
       if (sale == null) return false;
 
       // Compute access rights from the sale role
-      const role = sale.administrator ? "admin" : "user";
+      const role = permissionsFromSale(sale);
+      if (role == null) return false;
       return canAccess(role, params);
     },
     getAuthorizationDetails(authorizationId: string) {
