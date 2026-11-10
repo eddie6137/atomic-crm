@@ -77,6 +77,8 @@ export default defineConfig({
             // Harness hook tests are Node-only (they import node:fs / node:path
             // and spawn subprocesses); they run under the "claude" project below.
             ".claude/**",
+            // Cloudflare Worker tests are Node-only; see the "functions" project.
+            "workers/**",
           ],
           server: {
             deps: {
@@ -115,7 +117,7 @@ export default defineConfig({
           name: "functions",
           globals: true,
           environment: "node",
-          include: ["supabase/functions/**/*.test.ts"],
+          include: ["supabase/functions/**/*.test.ts", "workers/**/*.test.ts"],
           exclude: ["**/node_modules/**", ".supabase-e2e/**"],
         },
       },

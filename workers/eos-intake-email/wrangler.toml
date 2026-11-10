@@ -1,0 +1,10 @@
+# Free-plan Worker. PREP ONLY: must NOT be deployed in this slice.
+# account_id intentionally unset. No secrets here: set EOS_INTAKE_HMAC_SECRET
+# via the secret store at deploy time, never in this file.
+name = "eos-intake-email"
+main = "src/index.ts"
+compatibility_date = "2026-06-01"
+
+[vars]
+# INGEST_ADDRESS and INTAKE_EDGE_URL are set per environment at deploy time.
+INTAKE_ENABLED = "0"
