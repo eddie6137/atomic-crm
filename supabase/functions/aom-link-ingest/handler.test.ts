@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
-import { handleRequest, isLinkEnabled } from "./handler.ts";
+import { handleRequest, isLinkEnabled, normalizeDeepLinkPath } from "./handler.ts";
 import { sign, type LinkDirection } from "./hmac.ts";
 
 // Ephemeral secret: generated at runtime inside the test process, never printed or committed.
@@ -207,7 +207,10 @@ describe("aom-link-ingest handler", () => {
   it.each([
     ["status not in vocabulary", { aom_status: "blocked" }],
     ["source_key/commitment mismatch", { commitment_id: randomUUID() }],
-    ["absolute deep link", { deep_link_path: "https://evil.example/x" }],
+    ["ftp deep link", { deep_link_path: "ftp://evil.example/x" }],
+    ["javascript deep link", { deep_link_path: "javascript:alert(1)" }],
+    ["empty deep link", { deep_link_path: "" }],
+    ["whitespace deep link", { deep_link_path: "   " }],
     ["protocol-relative deep link", { deep_link_path: "//evil.example/x" }],
     ["wrong namespace", { namespace: "other" }],
   ])("422 invalid body (%s): zero rpc calls", async (_n, over) => {
@@ -258,5 +261,56 @@ describe("aom-link-ingest handler", () => {
     const r2 = await handleRequest(await req(e), ON, bad);
     expect(r2.status).toBe(502);
     expect(JSON.stringify(await r2.json())).not.toContain("secret internals");
+  });
+});
+
+describe("deep_link_path normalization", () => {
+  const id = "11111111-1111-4111-8111-111111111111";
+  it("passes relative paths through unchanged (query + hash kept)", () => {
+    for (const p of [
+      `/playbooks/assign?assignment=${id}`,
+      `/playbooks/actions?action=${id}#x`,
+    ])
+      expect(normalizeDeepLinkPath(p)).toBe(p);
+  });
+  it("reduces absolute http(s) to path+search+hash", () => {
+    expect(
+      normalizeDeepLinkPath(`https://host.example/playbooks/assign?assignment=${id}#x`),
+    ).toBe(`/playbooks/assign?assignment=${id}#x`);
+    expect(normalizeDeepLinkPath("http://host.example:8080/a/b?c=1")).toBe(
+      "/a/b?c=1",
+    );
+    expect(normalizeDeepLinkPath("https://host.example")).toBe("/");
+  });
+  it.each([
+    "javascript:alert(1)",
+    "ftp://h/x",
+    "file:///etc/passwd",
+    "data:text/html,x",
+    "//evil.example/x",
+    "https://host.example//evil.example",
+    "/\\evil.example",
+    "",
+    "   ",
+    "relative/path",
+  ])("rejects %j", (v) => {
+    expect(normalizeDeepLinkPath(v)).toBeNull();
+  });
+  it("rejects non-strings", () => {
+    expect(normalizeDeepLinkPath(undefined)).toBeNull();
+    expect(normalizeDeepLinkPath(5)).toBeNull();
+  });
+
+  it("verifies HMAC over the raw absolute-URL body, then sends a relative path to the rpc", async () => {
+    const e = event();
+    const abs = { ...e, deep_link_path: `https://aom.example/playbooks/assign?assignment=${e.commitment_id}#x` };
+    const d = mkDeps();
+    const res = await handleRequest(await req(abs), ON, d);
+    expect(res.status).toBe(200);
+    expect(d.rpc).toHaveBeenCalledTimes(1);
+    const args = (d.rpc.mock.calls[0] as unknown as [string, any])[1];
+    expect(args.p_event.deep_link_path).toBe(
+      `/playbooks/assign?assignment=${e.commitment_id}#x`,
+    );
   });
 });

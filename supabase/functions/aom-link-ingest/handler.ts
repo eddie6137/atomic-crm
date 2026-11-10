@@ -41,6 +41,30 @@ const STATUSES = [
   "cancelled",
 ];
 
+/**
+ * Reduce a deep link to an app-relative path. Relative `/…` (not `//…`) passes through unchanged;
+ * absolute http(s) URLs become pathname+search+hash. Anything else returns null.
+ */
+export function normalizeDeepLinkPath(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  let out: string;
+  if (/^https?:\/\//i.test(v)) {
+    let u: URL;
+    try {
+      u = new URL(v);
+    } catch {
+      return null;
+    }
+    out = u.pathname + u.search + u.hash;
+  } else {
+    out = v;
+  }
+  if (!out.startsWith("/") || out.startsWith("//") || out.startsWith("/\\")) {
+    return null;
+  }
+  return out;
+}
+
 export function validateEvent(p: any, idem: string): boolean {
   if (!p || typeof p !== "object") return false;
   if (p.schema !== 1 || p.namespace !== "aom") return false;
@@ -110,6 +134,11 @@ export async function handleRequest(
     event = JSON.parse(rawBody);
   } catch {
     return json({ error: "invalid_request" }, 422);
+  }
+  // Normalize AFTER the HMAC verify (signature is over the raw body, unchanged).
+  if (event && typeof event === "object") {
+    const normalized = normalizeDeepLinkPath(event.deep_link_path);
+    if (normalized !== null) event.deep_link_path = normalized;
   }
   if (!validateEvent(event, idem!))
     return json({ error: "invalid_request" }, 422);

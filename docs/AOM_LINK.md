@@ -39,6 +39,12 @@ method and path stops a captured body being replayed against a different verb or
 - UI: `eos/AomLinkPanel.tsx` in the action drawer. Complete is not offered on an `open` AOM-originated card;
   any rejection restores the last projected status and shows the error.
 
+## deep_link_path
+
+`deep_link_path` is stored and sent as an app-relative path (`/…`, never `//…`). Ingest verifies the HMAC over the
+raw body first, then normalizes an absolute `http(s)` URL to its pathname + search + hash before validation and the
+RPC. Other schemes, protocol-relative values, and empty/whitespace values are rejected (422 `invalid_request`).
+
 ## Local test
 
 Server-side SQL tests need a scratch Postgres database named `atomic_aom_link_test`:
