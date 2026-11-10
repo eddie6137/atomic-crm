@@ -71,6 +71,9 @@ export type Company = {
   tax_identifier: string;
   country: string;
   context_links?: string[];
+  domains?: string[];
+  aliases?: string[];
+  plus_slug?: string;
   nb_contacts?: number;
   nb_deals?: number;
 } & Pick<RaRecord, "id">;

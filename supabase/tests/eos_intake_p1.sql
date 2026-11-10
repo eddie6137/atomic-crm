@@ -2,19 +2,25 @@
 -- RLS write denial, Needs client blocking, accept/reject/FYI, quick-add audit idempotency).
 -- Self-rolling-back: always ends by raising. PASS = message starts with 'EOS_INTAKE_TESTS PASS'; any 'FAIL' = failure.
 -- Run on STAGING only: psql "$STAGING_DB_URL" -f supabase/tests/eos_intake_p1.sql
--- Needs the synthetic user pat.demo@example.invalid (an active sales member) and at least one company.
+-- Needs the synthetic users pat.demo@example.invalid (member) and eos-test@example.invalid (admin; fixture inserts
+-- are admin/service_role only) and at least one company.
 do $$
 declare team uuid; sid bigint; comp bigint; i1 uuid; i2 uuid; i3 uuid; i4 uuid; i5 uuid; cm uuid; cm2 uuid; a uuid; b uuid;
-  n int; st text; ok text; f text := ''; passed int := 0; today date := (now() at time zone 'America/Los_Angeles')::date;
+  adm uuid; n int; st text; ok text; f text := ''; passed int := 0; today date := (now() at time zone 'America/Los_Angeles')::date;
 begin
   select user_id, id into team, sid from public.sales where email = 'pat.demo@example.invalid';
+  select user_id into adm from public.sales where email = 'eos-test@example.invalid';
   select id into comp from public.companies order by id limit 1;
   perform set_config('request.jwt.claims', json_build_object('sub', team, 'role', 'authenticated')::text, true);
   set local role authenticated;
 
   -- fixture insert is idempotent on fingerprint (same source_ref + normalized excerpt -> same id)
+  perform set_config('request.jwt.claims', json_build_object('sub', adm, 'role', 'authenticated')::text, true);
   i1 := public.eos_intake_insert_fixture('t-1', 'Subj', 'x@client.test', 'Please send the deck', null, null, 'Send deck', sid, today + 3);
+  perform set_config('request.jwt.claims', json_build_object('sub', team, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', adm, 'role', 'authenticated')::text, true);
   i2 := public.eos_intake_insert_fixture('t-1', 'Subj', 'x@client.test', '  please SEND the deck ', null);
+  perform set_config('request.jwt.claims', json_build_object('sub', team, 'role', 'authenticated')::text, true);
   select count(*) into n from public.eos_intake_items where source_ref = 't-1';
   if i1 = i2 and n = 1 then passed := passed + 1; else f := f || ' FAIL fixture-dedupe n=' || n; end if;
   select needs_client into st from public.eos_intake_items where id = i1;
@@ -42,7 +48,9 @@ begin
   begin perform public.eos_intake_accept_action(i1, '{}'); f := f || ' FAIL accept without account';
   exception when others then if sqlerrm like '%Needs client%' then passed := passed + 1; else f := f || ' FAIL needs-client msg: ' || sqlerrm; end if; end;
   -- owner and due date are required
+  perform set_config('request.jwt.claims', json_build_object('sub', adm, 'role', 'authenticated')::text, true);
   i3 := public.eos_intake_insert_fixture('t-3', 'S3', null, 'no owner no due', comp);
+  perform set_config('request.jwt.claims', json_build_object('sub', team, 'role', 'authenticated')::text, true);
   begin perform public.eos_intake_accept_action(i3, '{"title":"T3"}'); f := f || ' FAIL accept without owner';
   exception when others then if sqlerrm like '%owner required%' then passed := passed + 1; else f := f || ' FAIL owner msg: ' || sqlerrm; end if; end;
   begin perform public.eos_intake_accept_action(i3, json_build_object('title','T3','owner_sales_id',sid)::jsonb); f := f || ' FAIL accept without due';
@@ -57,7 +65,9 @@ begin
   if cm = cm2 and st = 'accepted' and ok = 'true' and n = 1 then passed := passed + 1; else f := f || ' FAIL accept action st=' || st; end if;
 
   -- Reject sets status + server-side decided_by; an accepted item cannot be rejected
+  perform set_config('request.jwt.claims', json_build_object('sub', adm, 'role', 'authenticated')::text, true);
   i4 := public.eos_intake_insert_fixture('t-4', 'S4', null, 'noise', comp);
+  perform set_config('request.jwt.claims', json_build_object('sub', team, 'role', 'authenticated')::text, true);
   perform public.eos_intake_reject(i4);
   select triage_status into st from public.eos_intake_items where id = i4 and decided_by = sid and decided_at is not null;
   if st = 'rejected' then passed := passed + 1; else f := f || ' FAIL reject'; end if;
@@ -65,7 +75,9 @@ begin
   exception when others then passed := passed + 1; end;
 
   -- Accept FYI writes eos_account_fyi once
+  perform set_config('request.jwt.claims', json_build_object('sub', adm, 'role', 'authenticated')::text, true);
   i5 := public.eos_intake_insert_fixture('t-5', 'S5', null, 'FYI: they renewed', comp);
+  perform set_config('request.jwt.claims', json_build_object('sub', team, 'role', 'authenticated')::text, true);
   a := public.eos_intake_accept_fyi(i5, '{}'); b := public.eos_intake_accept_fyi(i5, '{}');
   select count(*) into n from public.eos_account_fyi where intake_id = i5 and company_id = comp and created_by = sid;
   if a = b and n = 1 then passed := passed + 1; else f := f || ' FAIL fyi n=' || n; end if;

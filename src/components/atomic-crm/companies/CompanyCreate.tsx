@@ -1,13 +1,21 @@
-import { CreateBase, Form, useGetIdentity, useTranslate } from "ra-core";
+import {
+  CreateBase,
+  Form,
+  useGetIdentity,
+  usePermissions,
+  useTranslate,
+} from "ra-core";
 import { Card, CardContent } from "@/components/ui/card";
 import { CancelButton } from "@/components/admin/cancel-button";
 import { SaveButton } from "@/components/admin/form";
 
 import { CompanyInputs } from "./CompanyInputs";
+import { stripAttributionUnlessAdmin } from "./attribution";
 
 export const CompanyCreate = () => {
   const { identity } = useGetIdentity();
   const translate = useTranslate();
+  const { permissions } = usePermissions();
   return (
     <CreateBase
       redirect="show"
@@ -16,7 +24,7 @@ export const CompanyCreate = () => {
         if (values.website && !values.website.startsWith("http")) {
           values.website = `https://${values.website}`;
         }
-        return values;
+        return stripAttributionUnlessAdmin(values, permissions);
       }}
     >
       <div className="mt-2 flex lg:mr-72">

@@ -1,4 +1,9 @@
-import { required, useRecordContext, useTranslate } from "ra-core";
+import {
+  required,
+  usePermissions,
+  useRecordContext,
+  useTranslate,
+} from "ra-core";
 import { ReferenceInput } from "@/components/admin/reference-input";
 import { TextInput } from "@/components/admin/text-input";
 import { SelectInput } from "@/components/admin/select-input";
@@ -29,6 +34,7 @@ const isUrl = (url: string) => {
 
 export const CompanyInputs = () => {
   const isMobile = useIsMobile();
+  const { permissions } = usePermissions();
 
   return (
     <div className="flex flex-col gap-4 p-1">
@@ -44,6 +50,7 @@ export const CompanyInputs = () => {
           <CompanyAdditionalInformationInputs />
         </div>
       </div>
+      {permissions === "admin" ? <CompanyAttributionInputs /> : null}
     </div>
   );
 };
@@ -180,6 +187,26 @@ const CompanyAdditionalInformationInputs = () => {
     </div>
   );
 };
+
+const CompanyAttributionInputs = () => (
+  <div className="flex flex-col gap-4" data-testid="company-attribution-fields">
+    <h6 className="text-lg font-semibold">Email attribution (admin)</h6>
+    <ArrayInput source="domains" helperText={false}>
+      <SimpleFormIterator disableReordering fullWidth getItemLabel={false}>
+        <TextInput source="" label={false} helperText={false} />
+      </SimpleFormIterator>
+    </ArrayInput>
+    <ArrayInput source="aliases" helperText={false}>
+      <SimpleFormIterator disableReordering fullWidth getItemLabel={false}>
+        <TextInput source="" label={false} helperText={false} />
+      </SimpleFormIterator>
+    </ArrayInput>
+    <TextInput
+      source="plus_slug"
+      helperText="Must match ^[a-z0-9][a-z0-9-]{0,62}$"
+    />
+  </div>
+);
 
 const saleOptionRenderer = (choice: Sale) =>
   `${choice.first_name} ${choice.last_name}`;

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useGetList, useNotify, useRefresh } from "ra-core";
+import { useGetList, useNotify, usePermissions, useRefresh } from "ra-core";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,6 +27,7 @@ const selectCls =
 export const InboxPage = () => {
   const notify = useNotify();
   const refresh = useRefresh();
+  const { permissions } = usePermissions();
   const [tab, setTab] = useState("open");
   const { data: items = [], isPending } = useGetList("eos_intake_items", {
     pagination: { page: 1, perPage: 200 },
@@ -84,15 +85,17 @@ export const InboxPage = () => {
       <EosNav />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-xl font-semibold">Inbox</h2>
-        <Button
-          variant="outline"
-          size="sm"
-          className="min-h-11 md:min-h-8"
-          onClick={loadFixture}
-          data-testid="inbox-load-fixture"
-        >
-          Load fixture items (stub)
-        </Button>
+        {permissions === "admin" ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-h-11 md:min-h-8"
+            onClick={loadFixture}
+            data-testid="inbox-load-fixture"
+          >
+            Load fixture items (stub)
+          </Button>
+        ) : null}
       </div>
       <p className="text-xs text-muted-foreground">
         Live email/Slack/Fireflies capture is OFF. Nothing here counts as a

@@ -97,8 +97,19 @@ create or replace function public.eos_intake_insert_fixture(
   p_suggested_due_date date default null, p_triage_label text default null)
 returns uuid language plpgsql security definer set search_path = ''
 as $$
-declare sid bigint := public.eos_intake_require_member(); fp text; v_id uuid;
+declare sid bigint; fp text; v_id uuid;
 begin
+  -- Guard: service_role, or a direct superuser session with no JWT role (migrations / psql), may insert
+  -- (created_by stays null). NOTE: current_user is always the definer (postgres) inside SECURITY DEFINER,
+  -- so the superuser path checks session_user + an empty JWT role; a PostgREST caller has session_user
+  -- 'authenticator' and always carries a JWT role.
+  if coalesce(auth.role(), '') = 'service_role'
+     or (coalesce(auth.role(), '') = '' and session_user in ('postgres', 'supabase_admin')) then
+    sid := public.eos_current_sales_id();
+  else
+    sid := public.eos_intake_require_member();
+    if not public.is_admin() then raise exception 'EOS: fixture insert is admin or service_role only'; end if;
+  end if;
   if coalesce(btrim(p_source_ref), '') = '' then raise exception 'EOS: source_ref required'; end if;
   fp := encode(sha256(convert_to('fixture|' || p_source_ref || '|' || lower(btrim(coalesce(p_excerpt, ''))), 'UTF8')), 'hex');
   insert into public.eos_intake_items(source, source_ref, subject, from_addr, excerpt, fingerprint, company_id,
@@ -238,10 +249,15 @@ end $$;
 
 do $$ declare r text; begin
   foreach r in array array[
-    'eos_intake_insert_fixture(text,text,text,text,bigint,boolean,text,bigint,date,text)',
     'eos_intake_accept_action(uuid,jsonb)', 'eos_intake_accept_fyi(uuid,jsonb)',
     'eos_intake_reject(uuid)', 'eos_intake_audit_quick_add(uuid)'] loop
     execute format('revoke all on function public.%s from public, anon', r);
     execute format('grant execute on function public.%s to authenticated', r);
   end loop;
 end $$;
+
+-- Members and admins share the Postgres role `authenticated`, so EXECUTE cannot be revoked from
+-- `authenticated` without also locking out admins (the Inbox stub button uses an admin JWT).
+-- Enforcement is the guard above; EXECUTE is revoked from public/anon and granted to service_role + authenticated.
+revoke all on function public.eos_intake_insert_fixture(text,text,text,text,bigint,boolean,text,bigint,date,text) from public, anon;
+grant execute on function public.eos_intake_insert_fixture(text,text,text,text,bigint,boolean,text,bigint,date,text) to service_role, authenticated;
