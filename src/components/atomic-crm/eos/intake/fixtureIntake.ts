@@ -1,4 +1,6 @@
 /** Synthetic intake items for staging proofs. source is forced to 'fixture' server-side. */
+export const SYNTHETIC_INTAKE_MARKER = "[SYNTHETIC-INTAKE-P1]";
+
 export type FixtureIntake = {
   source_ref: string;
   subject: string;
@@ -11,7 +13,15 @@ export type FixtureIntake = {
   triage_label?: "action" | "fyi";
 };
 
-export const fixtureIntake: FixtureIntake[] = [
+/** Prepend the staging marker unless it is already present (idempotent). */
+export const withSyntheticIntakeMarker = (value?: string): string | undefined => {
+  if (value == null) return value;
+  return value.includes(SYNTHETIC_INTAKE_MARKER)
+    ? value
+    : `${SYNTHETIC_INTAKE_MARKER} ${value}`;
+};
+
+const rawFixtureIntake: FixtureIntake[] = [
   {
     source_ref: "fixture-intake-001",
     subject: "Re: listing copy refresh",
@@ -39,3 +49,10 @@ export const fixtureIntake: FixtureIntake[] = [
     triage_label: "fyi",
   },
 ];
+
+/** Tagged copies used by the Inbox loader — every load prepends the marker. */
+export const fixtureIntake: FixtureIntake[] = rawFixtureIntake.map((item) => ({
+  ...item,
+  subject: withSyntheticIntakeMarker(item.subject)!,
+  suggested_title: withSyntheticIntakeMarker(item.suggested_title),
+}));
