@@ -43,31 +43,37 @@ async function req(
     idem?: string;
     unsigned?: boolean;
     method?: string;
+    signMethod?: string;
+    signPath?: string;
+    url?: string;
   } = {},
 ) {
   const body = JSON.stringify(e);
   const ts = String(o.ts ?? Math.floor(Date.now() / 1000));
   const idem = o.idem ?? deliveryId(e);
   const aud = o.audience ?? AUD;
+  const method = o.method ?? "POST";
+  const url = o.url ?? "http://localhost/aom-link-ingest";
   const headers: Record<string, string> = {
     "X-Aom-Link-Timestamp": ts,
-    "X-Aom-Link-Idempotency-Key": idem,
     "X-Aom-Link-Audience": aud,
+    "X-Aom-Link-Idempotency-Key": idem,
   };
   if (!o.unsigned) {
-    headers["X-Aom-Link-Signature"] = await sign(
-      o.secret ?? SECRET,
-      o.direction ?? "aom-to-atomic",
-      ts,
-      idem,
-      aud,
-      body,
-    );
+    headers["X-Aom-Link-Signature"] = await sign(o.secret ?? SECRET, {
+      direction: o.direction ?? "aom-to-atomic",
+      method: o.signMethod ?? method,
+      path: o.signPath ?? new URL(url).pathname,
+      timestamp: ts,
+      idempotencyKey: idem,
+      audience: aud,
+      rawBody: body,
+    });
   }
-  return new Request("http://localhost/aom-link-ingest", {
-    method: o.method ?? "POST",
+  return new Request(url, {
+    method,
     headers,
-    body: o.method === "GET" ? undefined : body,
+    body: method === "GET" ? undefined : body,
   });
 }
 const mkDeps = (data: unknown = { result: "created" }) => ({
@@ -103,6 +109,28 @@ describe("aom-link-ingest handler", () => {
   ])("401 %s: zero rpc calls", async (_n, o) => {
     const d = mkDeps();
     const res = await handleRequest(await req(event(), o), ON, d);
+    expect(res.status).toBe(401);
+    expect(d.rpc).not.toHaveBeenCalled();
+  });
+
+  it("401 when the MAC is signed with the wrong HTTP method (GET vs POST)", async () => {
+    const d = mkDeps();
+    const res = await handleRequest(
+      await req(event(), { signMethod: "GET" }),
+      ON,
+      d,
+    );
+    expect(res.status).toBe(401);
+    expect(d.rpc).not.toHaveBeenCalled();
+  });
+
+  it("401 when the MAC is signed with the wrong path", async () => {
+    const d = mkDeps();
+    const res = await handleRequest(
+      await req(event(), { signPath: "/functions/v1/some-other-fn" }),
+      ON,
+      d,
+    );
     expect(res.status).toBe(401);
     expect(d.rpc).not.toHaveBeenCalled();
   });

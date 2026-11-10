@@ -13,6 +13,19 @@ enabled by shipping the code; flipping is an ops step in the platform secret sto
 | `ATOMIC_AOM_LINK_AOM_URL` | edge function env | AOM base URL the write-back sender calls |
 | `VITE_AOM_APP_ORIGIN` | build-time (optional) | Origin used to render the "Open in AOM" link; without it the AOM path is shown as text |
 
+
+## Signing (both directions)
+
+Headers: `X-Aom-Link-Timestamp` (unix seconds), `X-Aom-Link-Idempotency-Key`, `X-Aom-Link-Audience`,
+`X-Aom-Link-Signature: sha256=<hex>`.
+
+`signature = HMAC-SHA256(secret, direction + "\n" + method + "\n" + path + "\n" + timestamp + "\n" + idempotencyKey + "\n" + audience + "\n" + rawBody)`
+with `direction` = `aom-to-atomic` (projection) or `atomic-to-aom` (write-back), `method` = uppercase HTTP
+verb of the request (always `POST` on the wire), and `path` = request pathname with no query string
+(`/api/atomic-link/write-back` on AOM; the Atomic ingest function pathname on the other hop). Skew window 300 s.
+The direction prefix stops a captured projection being replayed as a write-back (and vice versa). Binding
+method and path stops a captured body being replayed against a different verb or route.
+
 ## Pieces
 
 - `supabase/functions/aom-link-ingest` — HMAC ingress. 401 bad/missing/skewed signature, 403 `link_off` /

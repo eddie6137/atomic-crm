@@ -80,9 +80,12 @@ export async function handleRequest(
   const rawBody = await req.text();
   const idem = req.headers.get(IDEMPOTENCY_HEADER);
   const audience = req.headers.get(AUDIENCE_HEADER);
+  const url = new URL(req.url);
   const ok = await verify({
     secret: env.ATOMIC_AOM_LINK_HMAC_SECRET,
     direction: "aom-to-atomic",
+    method: req.method,
+    path: url.pathname,
     signature: req.headers.get(SIGNATURE_HEADER),
     timestamp: req.headers.get(TIMESTAMP_HEADER),
     idempotencyKey: idem,

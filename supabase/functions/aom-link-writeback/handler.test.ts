@@ -148,6 +148,8 @@ describe("aom-link-writeback handler", () => {
       // verifies as atomic-to-aom, and NOT as a projection (direction-bound)
       const common = {
         secret: SECRET,
+        method: "POST",
+        path: "/api/atomic-link/write-back",
         signature: h["X-Aom-Link-Signature"],
         timestamp: h["X-Aom-Link-Timestamp"],
         idempotencyKey: idem,
@@ -164,9 +166,16 @@ describe("aom-link-writeback handler", () => {
   );
 
   it("both hmac copies agree", async () => {
-    expect(await signWb(SECRET, "atomic-to-aom", "1", "k", "a", "b")).toBe(
-      await signIngest(SECRET, "atomic-to-aom", "1", "k", "a", "b"),
-    );
+    const p = {
+      direction: "atomic-to-aom" as const,
+      method: "POST",
+      path: "/api/atomic-link/write-back",
+      timestamp: "1",
+      idempotencyKey: "k",
+      audience: "a",
+      rawBody: "b",
+    };
+    expect(await signWb(SECRET, p)).toBe(await signIngest(SECRET, p));
   });
 
   it("AOM 409 invalid_transition => typed ok:false (UI restores); nothing else attempted", async () => {

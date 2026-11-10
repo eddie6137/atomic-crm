@@ -369,14 +369,15 @@ describe.skipIf(!URL_)("eos_aom_link_apply (scratch DB)", () => {
         "X-Aom-Link-Timestamp": ts,
         "X-Aom-Link-Idempotency-Key": e.delivery,
         "X-Aom-Link-Audience": "aud",
-        "X-Aom-Link-Signature": await sign(
-          secret,
-          "aom-to-atomic",
-          ts,
-          e.delivery,
-          "aud",
-          body,
-        ),
+        "X-Aom-Link-Signature": await sign(secret, {
+          direction: "aom-to-atomic",
+          method: "POST",
+          path: "/aom-link-ingest",
+          timestamp: ts,
+          idempotencyKey: e.delivery,
+          audience: "aud",
+          rawBody: body,
+        }),
       },
     });
     const res = await handleRequest(

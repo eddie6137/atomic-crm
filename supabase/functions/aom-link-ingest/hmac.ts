@@ -1,78 +1,96 @@
-// AOM⇄Atomic link HMAC (pattern of eos-intake-ingest/hmac.ts; different secret, headers and message).
-// signature = HMAC-SHA256(secret, direction \n timestamp \n idempotencyKey \n audience \n rawBody)
-// Header value: sha256=<hex>. The direction prefix keeps a captured projection from being replayed
-// as a write-back (and vice versa). Keep identical to aom-link-writeback/hmac.ts and the AOM side.
-export type LinkDirection = "aom-to-atomic" | "atomic-to-aom";
+// HMAC helpers shared (by copy) between aom-link-ingest and aom-link-writeback.
+// Direction-bound so a captured projection cannot be replayed as a write-back
+// (and vice versa). Method + path bind the MAC to the intended verb and route.
+// Keep identical to aom-link-writeback/hmac.ts and the AOM side.
+const SKEW_SECONDS = 300;
+
 export const SIGNATURE_HEADER = "X-Aom-Link-Signature";
 export const TIMESTAMP_HEADER = "X-Aom-Link-Timestamp";
 export const IDEMPOTENCY_HEADER = "X-Aom-Link-Idempotency-Key";
 export const AUDIENCE_HEADER = "X-Aom-Link-Audience";
-export const MAX_SKEW_SECONDS = 300;
 
-const encoder = new TextEncoder();
+export type LinkDirection = "aom-to-atomic" | "atomic-to-aom";
+
+export interface SignParams {
+  direction: LinkDirection;
+  method: string;
+  path: string;
+  timestamp: string;
+  idempotencyKey: string;
+  audience: string;
+  rawBody: string;
+}
+
+export function requestMethod(m: string | undefined | null): string {
+  return (m ?? "").trim().toUpperCase();
+}
+
+/** Pathname of a URL or path. Query string stripped. Empty / unparseable → "". */
+export function requestPath(urlOrPath: string | undefined | null): string {
+  if (!urlOrPath) return "";
+  try {
+    const u = urlOrPath.includes("://")
+      ? new URL(urlOrPath)
+      : new URL(urlOrPath, "http://hmac.invalid");
+    return u.pathname;
+  } catch {
+    return "";
+  }
+}
 
 async function hmacHex(secret: string, message: string): Promise<string> {
   const key = await crypto.subtle.importKey(
     "raw",
-    encoder.encode(secret),
+    new TextEncoder().encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
   );
-  const mac = await crypto.subtle.sign("HMAC", key, encoder.encode(message));
-  return Array.from(new Uint8Array(mac), (b) =>
-    b.toString(16).padStart(2, "0"),
-  ).join("");
-}
-
-function constantTimeEqual(a: string, b: string): boolean {
-  const ab = encoder.encode(a);
-  const bb = encoder.encode(b);
-  let diff = ab.length ^ bb.length;
-  const len = Math.max(ab.length, bb.length);
-  for (let i = 0; i < len; i++) diff |= (ab[i] ?? 0) ^ (bb[i] ?? 0);
-  return diff === 0;
-}
-
-export async function sign(
-  secret: string,
-  direction: LinkDirection,
-  timestamp: string,
-  idempotencyKey: string,
-  audience: string,
-  rawBody: string,
-): Promise<string> {
-  const msg = [direction, timestamp, idempotencyKey, audience, rawBody].join(
-    "\n",
+  const sig = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(message),
   );
+  return [...new Uint8Array(sig)]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+export async function sign(secret: string, p: SignParams): Promise<string> {
+  const method = requestMethod(p.method);
+  const path = requestPath(p.path);
+  const msg = [
+    p.direction,
+    method,
+    path,
+    p.timestamp,
+    p.idempotencyKey,
+    p.audience,
+    p.rawBody,
+  ].join("\n");
   return `sha256=${await hmacHex(secret, msg)}`;
 }
 
-export async function verify(opts: {
-  secret: string | undefined;
-  direction: LinkDirection;
-  signature: string | null | undefined;
-  timestamp: string | null | undefined;
-  idempotencyKey: string | null | undefined;
-  audience: string | null | undefined;
-  rawBody: string;
-  nowSeconds?: number;
-}): Promise<boolean> {
-  const { secret, signature, timestamp, idempotencyKey, audience } = opts;
-  if (!secret || !signature || !timestamp || !idempotencyKey || !audience) {
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let x = 0;
+  for (let i = 0; i < a.length; i++) x |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return x === 0;
+}
+
+export async function verify(
+  p: {
+    secret?: string | null;
+    signature?: string | null;
+    nowSeconds?: number;
+  } & SignParams,
+): Promise<boolean> {
+  if (!p.secret || !p.signature || !p.timestamp || !p.idempotencyKey || !p.audience)
     return false;
-  }
-  if (!/^sha256=[0-9a-f]{64}$/.test(signature)) return false;
-  if (!/^\d+$/.test(timestamp)) return false;
-  const now = opts.nowSeconds ?? Math.floor(Date.now() / 1000);
-  if (Math.abs(now - Number(timestamp)) > MAX_SKEW_SECONDS) return false;
-  const expected = await sign(
-    secret,
-    opts.direction,
-    timestamp,
-    idempotencyKey,
-    audience,
-    opts.rawBody,
-  );
-  return constantTimeEqual(expected, signature);
+  if (!requestMethod(p.method) || !requestPath(p.path)) return false;
+  const ts = Number(p.timestamp);
+  const now = p.nowSeconds ?? Math.floor(Date.now() / 1000);
+  if (!Number.isFinite(ts) || Math.abs(now - ts) > SKEW_SECONDS) return false;
+  const expected = await sign(p.secret, p);
+  return timingSafeEqual(expected, p.signature);
 }
