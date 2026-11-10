@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router";
+import { isIntakeUiEnabled } from "./intake/intake";
 
-const tabs = [
+const baseTabs = [
   { to: "/client-actions", label: "Client Actions" },
   { to: "/eos", label: "Portfolio" },
   { to: "/eos/hot-topics", label: "Hot Topics" },
@@ -20,6 +21,10 @@ const tabs = [
 
 export const EosNav = () => {
   const { pathname } = useLocation();
+  // Intake UI is behind VITE_EOS_INTAKE_UI=1 (default off): one extra link, nothing else moves.
+  const tabs = isIntakeUiEnabled()
+    ? [{ to: "/inbox", label: "Inbox" }, ...baseTabs]
+    : baseTabs;
   return (
     <nav
       className="flex gap-1 overflow-x-auto border-b mb-2"

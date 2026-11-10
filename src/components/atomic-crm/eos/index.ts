@@ -12,3 +12,5 @@ export { eosMilestones } from "./EosMilestones";
 export { ContractSignalsPage } from "./EosContracts";
 export { eosContracts, eosContractObligations } from "./contractResources";
 export { ClientActionsPage } from "./ClientActionsPage";
+export { InboxPage } from "./intake/InboxPage";
+export { isIntakeUiEnabled } from "./intake/intake";

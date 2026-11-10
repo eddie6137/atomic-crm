@@ -40,6 +40,8 @@ import {
   L10Page,
   ProposalsPage,
   ClientActionsPage,
+  InboxPage,
+  isIntakeUiEnabled,
   ScorecardPage,
   eosDeliverables,
   eosMilestones,
@@ -298,6 +300,9 @@ const DesktopAdmin = (
         />
         <Route path={ProposalsPage.path} element={<ProposalsPage />} />
         <Route path={ClientActionsPage.path} element={<ClientActionsPage />} />
+        {isIntakeUiEnabled() && (
+          <Route path={InboxPage.path} element={<InboxPage />} />
+        )}
       </CustomRoutes>
       <Resource name="deals" {...deals} />
       <Resource name="eos_projects" {...eosProjects} />
@@ -315,6 +320,7 @@ const DesktopAdmin = (
       <Resource name="eos_scorecard_metrics" {...eosMetrics} />
       <Resource name="eos_scorecard_values" />
       <Resource name="eos_proposals" />
+      <Resource name="eos_intake_items" />
       <Resource name="contacts" {...contacts} />
       <Resource name="companies" {...companies} />
       <Resource name="contact_notes" />
@@ -404,6 +410,9 @@ const MobileAdmin = (
             path={ClientActionsPage.path}
             element={<ClientActionsPage />}
           />
+          {isIntakeUiEnabled() && (
+            <Route path={InboxPage.path} element={<InboxPage />} />
+          )}
         </CustomRoutes>
         <Resource name="eos_projects" {...eosProjects} />
         <Resource name="eos_commitments" {...eosCommitments} />
@@ -420,6 +429,7 @@ const MobileAdmin = (
         <Resource name="eos_scorecard_metrics" {...eosMetrics} />
         <Resource name="eos_scorecard_values" />
         <Resource name="eos_proposals" />
+        <Resource name="eos_intake_items" />
         <Resource name="sales" />
         <Resource
           name="contacts"

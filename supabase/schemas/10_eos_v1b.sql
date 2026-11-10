@@ -88,7 +88,7 @@ create table public.eos_scorecard_values (
 
 create table public.eos_proposals (
   id uuid primary key default gen_random_uuid(),
-  source text not null check (source in ('slack','fireflies','fixture')),
+  source text not null check (source in ('slack','fireflies','fixture','email')),
   source_ref text not null,          -- message ts / meeting id
   source_url text,
   excerpt text not null,

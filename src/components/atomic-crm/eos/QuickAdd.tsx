@@ -14,6 +14,7 @@ import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { TextInput } from "@/components/admin/text-input";
 import { CompanyInput, OwnerInput } from "./EosShared";
+import { auditQuickAdd } from "./intake/intake";
 import {
   QUICK_ADD_TITLE_MAX,
   QUICK_ADD_DUE_CHIPS,
@@ -127,6 +128,15 @@ const QuickAddFields = ({
       setValue("title", "", { shouldDirty: false });
       titleInput()?.focus();
       refresh();
+      // Audit-only intake row (Q5). A failure never undoes the commitment: tell the user.
+      if (rec?.id != null && rec.id !== "") {
+        void auditQuickAdd(rec.id).then((err) => {
+          if (err)
+            notify(`Saved, but the intake audit row failed: ${err}`, {
+              type: "warning",
+            });
+        });
+      }
       onCreated?.(rec ?? ({ ...data, id: "" } as QuickAddCreated));
     } catch (e: any) {
       notify(`Could not save: ${e?.message ?? "unknown error"}`, {

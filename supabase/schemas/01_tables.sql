@@ -30,7 +30,13 @@ create table public.companies (
     description text,
     revenue text,
     tax_identifier text,
-    logo jsonb
+    logo jsonb,
+    domains text[],
+    aliases text[],
+    plus_slug text,
+    constraint companies_plus_slug_key unique (plus_slug),
+    constraint companies_plus_slug_format
+        check (plus_slug is null or plus_slug ~ '^[a-z0-9][a-z0-9-]{0,62}$')
 );
 
 create table public.contacts (
